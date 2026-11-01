@@ -1,0 +1,64 @@
+{
+  "ACC-1001": {
+    "name": "Jordan Ellis",
+    "tenure_years": 7,
+    "plan": "Unlimited Plus (2 lines)",
+    "anis_on_file": [
+      "+1-201-555-0142",
+      "+1-201-555-0177"
+    ],
+    "voiceprint": "enrollment/ACC-1001.wav",
+    "risk_flags": [],
+    "security_events_7d": [],
+    "billing_history": {
+      "credits_90d": 0,
+      "retention_offers_12m": 0,
+      "last_bill": 142.18
+    },
+    "active_tickets": [],
+    "pending_requests": []
+  },
+  "ACC-1003": {
+    "name": "Alex Chen",
+    "tenure_years": 4,
+    "plan": "Unlimited Welcome (1 line)",
+    "anis_on_file": [
+      "+1-646-555-0119"
+    ],
+    "voiceprint": "enrollment/ACC-1003.wav",
+    "risk_flags": [
+      "credentials_seen_in_breach_dump"
+    ],
+    "security_events_7d": [
+      "2 failed online logins (new device)",
+      "password reset email bounced"
+    ],
+    "billing_history": {
+      "credits_90d": 0,
+      "retention_offers_12m": 0,
+      "last_bill": 78.4
+    },
+    "active_tickets": [],
+    "pending_requests": []
+  },
+  "ACC-2002": {
+    "name": "Sam Rivera",
+    "tenure_years": 6,
+    "plan": "Unlimited Ultimate (3 lines)",
+    "anis_on_file": [
+      "+1-312-555-0164"
+    ],
+    "voiceprint": "enrollment/ACC-2002.wav",
+    "risk_flags": [],
+    "security_events_7d": [],
+    "billing_history": {
+      "credits_90d": 3,
+      "retention_offers_12m": 2,
+      "last_bill": 231.55
+    },
+    "active_tickets": [
+      "TCK-88412 billing dispute (closed, credit $40)"
+    ],
+    "pending_requests": []
+  }
+}

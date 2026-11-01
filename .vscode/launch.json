@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    { "name": "Dashboard (Streamlit)", "type": "debugpy", "request": "launch", "module": "streamlit",
+      "args": ["run", "app.py"], "cwd": "${workspaceFolder}" },
+    { "name": "CLI: all calls", "type": "debugpy", "request": "launch", "module": "vshield.cli",
+      "cwd": "${workspaceFolder}", "console": "integratedTerminal" },
+    { "name": "CLI: voice clone (verbose)", "type": "debugpy", "request": "launch", "module": "vshield.cli",
+      "args": ["voice_clone"], "cwd": "${workspaceFolder}", "console": "integratedTerminal" },
+    { "name": "Regenerate demo data", "type": "debugpy", "request": "launch",
+      "program": "${workspaceFolder}/scripts/generate_demo_data.py", "cwd": "${workspaceFolder}" },
+    { "name": "Tests", "type": "debugpy", "request": "launch", "module": "pytest", "cwd": "${workspaceFolder}" }
+  ]
+}

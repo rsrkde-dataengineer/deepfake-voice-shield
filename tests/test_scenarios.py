@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from vshield import challenge, fusion
+from vshield.dsp import telephone
 from vshield.models import SignalResult, Turn
 from vshield.session import CallSession, load_accounts, load_call
 from vshield.signals import acoustic, behavior, context
@@ -75,6 +76,15 @@ def test_ai_disclosure_routes_to_authorised_flow():
            "telecom": SignalResult("telecom", "t", 0.3, 0.6)}
     _, verdict, action, _ = fusion.fuse(sig)
     assert action == "AUTHORIZED_AGENT"
+
+
+def test_telephone_channel_is_narrowband():
+    from scipy.signal import welch
+    y = np.random.default_rng(0).uniform(-0.5, 0.5, 16_000).astype(np.float32)
+    z = telephone(y)
+    f, p = welch(z, 16_000)
+    assert abs(len(z) - len(y)) <= 2
+    assert p[f > 4200].sum() < 0.01 * p.sum()
 
 
 def test_bot_farm_telecom():

@@ -10,17 +10,17 @@ That is exactly why this signal is fused with the anti-spoofing signal.
 from __future__ import annotations
 
 import os
-import tempfile
 from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
 
-from ..dsp import SR, load_wav, mfcc, pitch_track, save_wav
+from ..dsp import SR, load_wav, mfcc, pitch_track
 from ..models import SignalResult
 
-DATA = Path(__file__).resolve().parents[2] / "data"
+DATA = Path(os.getenv("VSHIELD_DATA") or Path(__file__).resolve().parents[2] / "data").resolve()
 BACKEND = os.getenv("VSHIELD_VOICEPRINT", "demo").lower()
+TITANET = "nvidia/speakerverification_en_titanet_large"   # CC-BY-4.0, 192-dim, 16 kHz mono
 
 
 def embed(y: np.ndarray, raw: bool = False) -> np.ndarray:
@@ -46,14 +46,13 @@ def _ubm():
 @lru_cache(maxsize=1)
 def _titanet():
     import nemo.collections.asr as nemo_asr  # heavy, optional
-    return nemo_asr.models.EncDecSpeakerLabelModel.from_pretrained("nvidia/speakerverification_en_titanet_large")
+    from ..ml import device
+    return nemo_asr.models.EncDecSpeakerLabelModel.from_pretrained(TITANET, map_location=device()).eval()
 
 
 def _embed_titanet(y: np.ndarray) -> np.ndarray:
-    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
-        save_wav(f.name, y, SR)
-        e = _titanet().get_embedding(f.name)
-    return e.squeeze().detach().cpu().numpy()
+    emb, _ = _titanet().infer_segment(y.astype(np.float32))
+    return emb.squeeze().detach().cpu().numpy()
 
 
 def _embedding(y: np.ndarray) -> np.ndarray:
@@ -70,8 +69,9 @@ def cosine(a: np.ndarray, b: np.ndarray) -> float:
     return float(a @ b / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-9))
 
 
-# Similarity thresholds (calibrate per backend on your own dev set)
-THRESH = {"demo": (0.55, 0.80), "titanet": (0.45, 0.65)}
+# Similarity thresholds (calibrate per backend on your own dev set). titanet: from scripts/evaluate.py on
+# LibriSpeech dev-clean, 40 speakers - genuine min 0.74 clean / 0.72 phone, impostor max 0.51 / 0.62.
+THRESH = {"demo": (0.55, 0.80), "titanet": (0.55, 0.70)}
 
 
 def analyze(caller_audio: np.ndarray, account: dict) -> SignalResult:

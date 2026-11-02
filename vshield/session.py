@@ -6,6 +6,7 @@ we replay the mock call files turn by turn, which exercises exactly the same log
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import numpy as np
@@ -15,7 +16,7 @@ from .dsp import SR, load_wav
 from .models import RiskSnapshot, Turn
 from .signals import acoustic, behavior, context, voiceprint
 
-DATA = Path(__file__).resolve().parents[1] / "data"
+DATA = Path(os.getenv("VSHIELD_DATA") or Path(__file__).resolve().parents[1] / "data").resolve()
 
 
 def load_accounts() -> dict:

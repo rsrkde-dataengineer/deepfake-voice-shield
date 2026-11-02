@@ -12,6 +12,7 @@ import streamlit as st
 
 from vshield import handoff
 from vshield.session import DATA, CallSession, list_calls, load_accounts, load_call
+from vshield.signals import acoustic, voiceprint
 
 st.set_page_config(page_title="Deepfake Voice Shield", page_icon="🛡️", layout="wide")
 
@@ -80,8 +81,9 @@ with st.sidebar:
     if st.toggle("Reveal ground truth"):
         st.info(f"Ground truth: **{calls[cid]['ground_truth']}**")
     st.markdown("---")
-    st.caption("Backends: demo DSP models by default. Set `VSHIELD_VOICEPRINT=titanet` and "
-               "`VSHIELD_SPOOF_MODEL=hf:<model>` to use NVIDIA TitaNet and a trained anti-spoofing model.")
+    st.caption(f"Backends: voiceprint `{voiceprint.BACKEND}` · synthetic voice `{acoustic.BACKEND}` · "
+               f"data `{DATA.name}`. Set `VSHIELD_VOICEPRINT=titanet` and `VSHIELD_SPOOF_MODEL=spectra` "
+               "to use NVIDIA TitaNet and Spectra-AASIST.")
 
 call, acc = sess.call, sess.account
 snap = sess.history[-1]

@@ -1,4 +1,8 @@
 .venv/
+.venv-ml/
+.venv-gen/
+data/external/
+data/samples/
 __pycache__/
 *.pyc
 .pytest_cache/

@@ -143,7 +143,8 @@ def words_dur(text: str) -> float:
     return max(1.2, len(text.split()) / 2.7)
 
 
-def build_call(cid: str, spec: dict) -> dict:
+def build_call(cid: str, spec: dict, voice=None, out: Path = DATA) -> dict:
+    """`voice(text, turn_idx) -> (audio, transcript)` renders caller lines; default is the pseudo-speech synth."""
     turns, caller_audio = [], []
     t_audio, t = 0.0, 0.0
     seed = 1000 * (list(CALLS).index(cid) + 1)
@@ -173,7 +174,10 @@ def build_call(cid: str, spec: dict) -> dict:
             t = max(end, turns[-2]["end"] if len(turns) > 1 else end)
         else:
             latency = arg
-            y = say(text, spec["speaker"], spec["renderer"], seed=seed + i)
+            if voice is None:
+                y = say(text, spec["speaker"], spec["renderer"], seed=seed + i)
+            else:
+                y, text = voice(text, i)
             dur = len(y) / SR
             start = t + latency   # t = when the line went quiet (agent end, or caller talk-over end)
             turns.append({"idx": i, "speaker": "caller", "text": text, "start": round(start, 2),
@@ -182,7 +186,7 @@ def build_call(cid: str, spec: dict) -> dict:
             t_audio += dur
             t = start + dur
     audio = np.concatenate(caller_audio)
-    save_wav(str(DATA / "audio" / f"{cid}.wav"), audio)
+    save_wav(str(out / "audio" / f"{cid}.wav"), audio)
     return {
         "call_id": cid, "title": spec["title"], "account_id": spec["account_id"],
         "ground_truth": spec["ground_truth"], "caller_audio": f"audio/{cid}.wav",

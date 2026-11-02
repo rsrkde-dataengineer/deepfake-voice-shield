@@ -1,0 +1,11 @@
+# Real model backends (separate venv; the demo only needs requirements.txt):
+#   uv venv --python 3.12 .venv-ml && uv pip install --python .venv-ml/bin/python -r requirements-ml.txt
+#   VSHIELD_VOICEPRINT=titanet VSHIELD_SPOOF_MODEL=spectra streamlit run app.py
+# Versions are the ones verified on macOS / Apple M1 Pro (MPS).
+-r requirements.txt
+torch==2.15.0
+transformers==5.22.1
+huggingface_hub
+safetensors
+soundfile
+nemo_toolkit[asr]==3.0.0

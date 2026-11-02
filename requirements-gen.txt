@@ -1,0 +1,9 @@
+# Sample-data generators (separate venv: chatterbox pins torch 2.6, which conflicts with NeMo):
+#   uv venv --python 3.12 .venv-gen && uv pip install --python .venv-gen/bin/python -r requirements-gen.txt
+#   .venv-gen/bin/python scripts/build_sample_set.py
+chatterbox-tts==0.1.7   # MIT, zero-shot voice cloning (outputs carry Resemble's Perth watermark)
+kokoro==0.9.4           # Apache-2.0, stock TTS voices
+en_core_web_sm @ https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl  # Kokoro's G2P needs it
+soundfile
+scipy
+setuptools<81           # resemble-perth (Chatterbox's watermarker) still imports pkg_resources

@@ -29,6 +29,17 @@ def save_wav(path: str, y: np.ndarray, sr: int = SR) -> None:
     wavfile.write(path, sr, (y * 32767).astype(np.int16))
 
 
+def telephone(y: np.ndarray, sr: int = SR) -> np.ndarray:
+    """Narrowband phone channel: 8 kHz G.711 mu-law round trip, returned at `sr`."""
+    from scipy.signal import resample_poly
+    x = np.clip(resample_poly(y, 1, sr // 8000), -1.0, 1.0)
+    mu = 255.0
+    enc = np.sign(x) * np.log1p(mu * np.abs(x)) / np.log1p(mu)
+    enc = np.round((enc + 1) * 127.5) / 127.5 - 1          # 8-bit code words
+    dec = np.sign(enc) * np.expm1(np.abs(enc) * np.log1p(mu)) / mu
+    return resample_poly(dec, sr // 8000, 1).astype(np.float32)
+
+
 def frame_signal(y: np.ndarray, frame_len: int, hop: int) -> np.ndarray:
     if len(y) < frame_len:
         y = np.pad(y, (0, frame_len - len(y)))

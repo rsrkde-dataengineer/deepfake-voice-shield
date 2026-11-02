@@ -22,7 +22,7 @@ Other entry points:
 ```bash
 python -m vshield.cli                  # score all 3 demo calls
 python -m vshield.cli voice_clone      # turn-by-turn risk + generated handoff card + fraud referral
-pytest                                 # 10 tests
+pytest                                 # 11 tests
 ```
 
 VS Code: open the folder, accept the recommended Python extension, then use **Run and Debug** → "Dashboard (Streamlit)", "CLI: all calls" or "Tests".
@@ -75,9 +75,13 @@ The demo backends need only numpy and scipy, so the prototype runs on any laptop
 
 | Signal | Env var | Production model |
 |---|---|---|
-| Voiceprint | `VSHIELD_VOICEPRINT=titanet` | NVIDIA TitaNet-Large (`nvidia/speakerverification_en_titanet_large`) via NeMo: `pip install "nemo_toolkit[asr]"` |
-| Synthetic voice | `VSHIELD_SPOOF_MODEL=hf:<model_id>` | Any Hugging Face audio-classification anti-spoofing model (Wav2Vec2 / WavLM / AASIST family): `pip install transformers torch` |
+| Voiceprint | `VSHIELD_VOICEPRINT=titanet` | NVIDIA TitaNet-Large (`nvidia/speakerverification_en_titanet_large`) via NeMo |
+| Synthetic voice | `VSHIELD_SPOOF_MODEL=spectra` | Spectra-AASIST (wav2vec2 XLS-R + AASIST), pinned revision |
+| Synthetic voice | `VSHIELD_SPOOF_MODEL=hf:<model_id>` | Any Hugging Face audio-classification anti-spoofing model |
+| Data folder | `VSHIELD_DATA=data/samples/demo` | The same three calls with real speech (built by `scripts/build_sample_set.py`) |
 | Transcript | (future) | Streaming ASR such as NVIDIA Parakeet / Riva or Whisper feeding `CallSession.add_turn()` |
+
+The real models run in a separate venv (`requirements-ml.txt`), verified on an Apple M1 Pro. Spike results, reproduction steps and limits are in [reports/spike_eval.md](reports/spike_eval.md). In short: on public LibriSpeech speech against Chatterbox clones and Kokoro voices, Spectra-AASIST caught every fake with 0–1% EER, and TitaNet accepted most clones as the customer. The three demo stories keep their outcomes on real audio.
 
 Notes:
 * Recalibrate thresholds after swapping models: `THRESH` in `signals/voiceprint.py` and the logistic in `signals/acoustic.py`.

@@ -29,6 +29,35 @@ VS Code: open the folder, accept the recommended Python extension, then use **Ru
 
 ---
 
+## Run with the real models (NVIDIA TitaNet + Spectra-AASIST)
+
+You need Python 3.10–3.12, about 5 GB of free disk and internet for the first run (about 2.6 GB of model weights download once). A GPU is optional: Apple Silicon (MPS) or NVIDIA (CUDA) are used automatically, otherwise CPU.
+
+**1. Install [uv](https://docs.astral.sh/uv/)** (it also fetches Python 3.12 if you don't have it):
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh          # macOS / Linux / WSL2
+```
+
+**2. Create the ML environment** (from the project folder):
+```bash
+uv venv --python 3.12 .venv-ml
+uv pip install --python .venv-ml/bin/python -r requirements-ml.txt
+```
+
+**3. Add the real-audio calls.** Unzip the shared `real-audio-demo-data.zip` into the project, so that `data/samples/demo/accounts.json` exists. To build them yourself instead, see [reports/spike_eval.md](reports/spike_eval.md); it takes about 30 minutes.
+
+**4. Run:**
+```bash
+export VSHIELD_VOICEPRINT=titanet VSHIELD_SPOOF_MODEL=spectra VSHIELD_DATA=data/samples/demo PYTORCH_ENABLE_MPS_FALLBACK=1
+.venv-ml/bin/python -m vshield.cli               # quick check: 3 calls -> PROCEED / ESCALATE / ESCALATE
+.venv-ml/bin/streamlit run app.py                # dashboard; sidebar should say titanet · spectra · demo
+```
+In VS Code, use **Run and Debug → "Dashboard (real models, real audio)"**.
+
+**Windows:** NeMo (TitaNet) is not reliable on native Windows, so use **WSL2 (Ubuntu)** and follow the Linux steps. The first call turn takes about a minute while the models load; later turns take about 0.1 s on a GPU and a few tenths of a second on CPU.
+
+---
+
 ## The three demo calls
 
 | Call | What happens | Shield result |

@@ -3,6 +3,7 @@
 .venv-gen/
 data/external/
 data/samples/
+share/
 __pycache__/
 *.pyc
 .pytest_cache/

@@ -20,7 +20,11 @@ DATA = Path(os.getenv("VSHIELD_DATA") or Path(__file__).resolve().parents[1] / "
 
 
 def load_accounts() -> dict:
-    return json.loads((DATA / "accounts.json").read_text())
+    path = DATA / "accounts.json"
+    if not path.exists():
+        raise FileNotFoundError(f"No call data in {DATA}. For the real-audio calls, unzip the shared demo data "
+                                "there or build it with scripts/build_sample_set.py (see README).")
+    return json.loads(path.read_text())
 
 
 def list_calls() -> list[str]:

@@ -3,6 +3,10 @@
   "configurations": [
     { "name": "Dashboard (Streamlit)", "type": "debugpy", "request": "launch", "module": "streamlit",
       "args": ["run", "app.py"], "cwd": "${workspaceFolder}" },
+    { "name": "Dashboard (real models, real audio)", "type": "debugpy", "request": "launch", "module": "streamlit",
+      "args": ["run", "app.py"], "cwd": "${workspaceFolder}", "python": "${workspaceFolder}/.venv-ml/bin/python",
+      "env": { "VSHIELD_VOICEPRINT": "titanet", "VSHIELD_SPOOF_MODEL": "spectra",
+               "VSHIELD_DATA": "data/samples/demo", "PYTORCH_ENABLE_MPS_FALLBACK": "1" } },
     { "name": "CLI: all calls", "type": "debugpy", "request": "launch", "module": "vshield.cli",
       "cwd": "${workspaceFolder}", "console": "integratedTerminal" },
     { "name": "CLI: voice clone (verbose)", "type": "debugpy", "request": "launch", "module": "vshield.cli",

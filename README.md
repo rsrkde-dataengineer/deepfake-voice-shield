@@ -54,7 +54,7 @@ export VSHIELD_VOICEPRINT=titanet VSHIELD_SPOOF_MODEL=spectra VSHIELD_DATA=data/
 ```
 In VS Code, use **Run and Debug → "Dashboard (real models, real audio)"**.
 
-**Windows:** NeMo (TitaNet) is not reliable on native Windows, so use **WSL2 (Ubuntu)** and follow the Linux steps. The first call turn takes about a minute while the models load; later turns take about 0.1 s on a GPU and a few tenths of a second on CPU.
+**Windows:** NeMo (TitaNet) is not reliable on native Windows, so use **WSL2 (Ubuntu)** and follow the Linux steps. The first run takes a few minutes while about 2.6 GB of model weights download. After that, loading takes 15–60 s, and each call turn takes about 0.1 s on an Apple or NVIDIA GPU and about 1 s on CPU.
 
 ---
 

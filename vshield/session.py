@@ -19,16 +19,19 @@ from .signals import acoustic, behavior, context, voiceprint
 DATA = Path(os.getenv("VSHIELD_DATA") or Path(__file__).resolve().parents[1] / "data").resolve()
 
 
-def load_accounts() -> dict:
-    path = DATA / "accounts.json"
+def _require(path: Path) -> Path:
     if not path.exists():
         raise FileNotFoundError(f"No call data in {DATA}. For the real-audio calls, unzip the shared demo data "
                                 "there or build it with scripts/build_sample_set.py (see README).")
-    return json.loads(path.read_text())
+    return path
+
+
+def load_accounts() -> dict:
+    return json.loads(_require(DATA / "accounts.json").read_text())
 
 
 def list_calls() -> list[str]:
-    return sorted(p.stem for p in (DATA / "calls").glob("*.json"))
+    return sorted(p.stem for p in _require(DATA / "calls").glob("*.json"))
 
 
 def load_call(call_id: str) -> dict:

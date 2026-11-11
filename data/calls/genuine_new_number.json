@@ -1,0 +1,144 @@
+{
+  "call_id": "genuine_new_number",
+  "title": "Genuine customer abroad - lost phone, needs a new SIM",
+  "summary": "A real customer calls from a hotel line abroad and asks for a SIM change. The context looks risky, so Shield asks for a liveness check. He passes it and the change goes ahead.",
+  "account_id": "ACC-1002",
+  "ground_truth": "human",
+  "expected_action": "PROCEED",
+  "agent_name": "Priya",
+  "challenge_phrase": "it is most delightful",
+  "voices": {
+    "caller": "Real human voice: LibriSpeech dev-clean speaker 2428 (CC BY 4.0)",
+    "agent": "Kokoro TTS voice bf_emma"
+  },
+  "audio": {
+    "call": "audio/genuine_new_number.wav",
+    "caller": "audio/genuine_new_number_caller.wav"
+  },
+  "telecom": {
+    "ani": "+44-20-7946-0123",
+    "stir_shaken": "C",
+    "line_type": "landline",
+    "carrier": "International gateway (hotel PBX)",
+    "calls_from_ani_24h": 1,
+    "accounts_called_from_ani_7d": 1,
+    "ivr_intent": "sim_change",
+    "cti_destination": "CARE_DEVICE_SIM",
+    "ivr_dtmf_timing_ms": [
+      1120,
+      760,
+      1530,
+      980
+    ]
+  },
+  "turns": [
+    {
+      "idx": 0,
+      "speaker": "agent",
+      "text": "Thank you for calling, this is Priya. Who am I speaking with today?",
+      "start": 0.3,
+      "end": 3.68
+    },
+    {
+      "idx": 1,
+      "speaker": "caller",
+      "text": "I'm Mister Christopher from London.",
+      "start": 4.52,
+      "end": 6.32,
+      "source": "LibriSpeech 2428-83699-0041",
+      "audio_span": [
+        0.0,
+        1.8
+      ],
+      "scores": {
+        "synthetic_voice": 0.0084,
+        "voice_similarity": 0.6925
+      }
+    },
+    {
+      "idx": 2,
+      "speaker": "agent",
+      "text": "Thanks, Christopher. You're calling from a number that isn't on your account. Is everything all right?",
+      "start": 6.77,
+      "end": 11.75
+    },
+    {
+      "idx": 3,
+      "speaker": "caller",
+      "text": "It was a horrible journey.",
+      "start": 13.01,
+      "end": 14.55,
+      "source": "LibriSpeech 2428-83699-0014",
+      "audio_span": [
+        1.8,
+        3.34
+      ],
+      "scores": {
+        "synthetic_voice": 0.0089,
+        "voice_similarity": 0.8427
+      }
+    },
+    {
+      "idx": 4,
+      "speaker": "agent",
+      "text": "I'm sorry to hear that. I understand you lost your phone and need a new SIM. That's a high risk change, so I need one quick check first. Could you please repeat this phrase for me: it is most delightful.",
+      "start": 15.0,
+      "end": 26.18,
+      "challenge": {
+        "type": "phrase_repeat",
+        "phrase": "it is most delightful"
+      }
+    },
+    {
+      "idx": 5,
+      "speaker": "caller",
+      "text": "It is most delightful.",
+      "start": 27.15,
+      "end": 28.47,
+      "source": "LibriSpeech 2428-83705-0003",
+      "audio_span": [
+        3.34,
+        4.66
+      ],
+      "scores": {
+        "synthetic_voice": 0.0245,
+        "voice_similarity": 0.8576
+      }
+    },
+    {
+      "idx": 6,
+      "speaker": "agent",
+      "text": "Thank you, that's confirmed. Your new eSIM is active. Will you need roaming for the rest of your trip?",
+      "start": 28.92,
+      "end": 34.58
+    },
+    {
+      "idx": 7,
+      "speaker": "caller",
+      "text": "We are going for our honeymoon to Italy and the south of France.",
+      "start": 35.62,
+      "end": 39.6,
+      "source": "LibriSpeech 2428-83705-0040",
+      "audio_span": [
+        4.66,
+        8.64
+      ],
+      "scores": {
+        "synthetic_voice": 0.0408,
+        "voice_similarity": 0.846
+      }
+    },
+    {
+      "idx": 8,
+      "speaker": "agent",
+      "text": "Congratulations! I've added TravelPass for Italy and France. Enjoy the trip.",
+      "start": 40.05,
+      "end": 44.65
+    }
+  ],
+  "scored_with": {
+    "synthetic_voice": "Spectra-AASIST (lab260, rev eb65c26)",
+    "voiceprint": "NVIDIA TitaNet-Large (speakerverification_en_titanet_large)",
+    "date": "2026-11-12"
+  }
+}

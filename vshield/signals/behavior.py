@@ -37,7 +37,7 @@ def _logit(p: float) -> float:
     return float(np.log(p / (1 - p)))
 
 
-def _caller_latencies(turns: list[Turn]) -> list[float]:
+def caller_latencies(turns: list[Turn]) -> list[float]:
     lats = []
     for i, t in enumerate(turns):
         if t.speaker != "caller" or i == 0:
@@ -62,7 +62,7 @@ def analyze(turns: list[Turn]) -> SignalResult:
     details: dict = {}
 
     # 1. latency regularity
-    lats = _caller_latencies(turns)
+    lats = caller_latencies(turns)
     details["latencies_s"] = lats
     if len(lats) >= 2:
         cv = float(np.std(lats) / (np.mean(lats) + 1e-6))

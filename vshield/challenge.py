@@ -25,8 +25,9 @@ OTHER_CHALLENGES = [
 ]
 
 
-def suggest(call_id: str, already_issued: int) -> dict:
-    phrase = PHRASES[(sum(map(ord, call_id)) + already_issued) % len(PHRASES)]
+def suggest(call: dict, already_issued: int) -> dict:
+    """A random phrase to repeat. Demo calls carry the phrase their agent actually used."""
+    phrase = call.get("challenge_phrase") or PHRASES[(sum(map(ord, call["call_id"])) + already_issued) % len(PHRASES)]
     return {
         "type": "phrase_repeat", "phrase": phrase,
         "agent_script": f'"Before we continue, could you please repeat this phrase for me: {phrase}."',

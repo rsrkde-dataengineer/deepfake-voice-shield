@@ -1,9 +1,20 @@
 {
   "call_id": "genuine_customer",
   "title": "Genuine customer - duplicate TravelPass charge",
+  "summary": "A real customer asks about a billing error. Shield verifies them passively, so a transfer needs no re-verification.",
   "account_id": "ACC-1001",
   "ground_truth": "human",
-  "caller_audio": "audio/genuine_customer.wav",
+  "expected_action": "PROCEED",
+  "agent_name": "Maya",
+  "challenge_phrase": null,
+  "voices": {
+    "caller": "Real human voice: LibriSpeech dev-clean speaker 3081 (CC BY 4.0)",
+    "agent": "Kokoro TTS voice af_heart"
+  },
+  "audio": {
+    "call": "audio/genuine_customer.wav",
+    "caller": "audio/genuine_customer_caller.wav"
+  },
   "telecom": {
     "ani": "+1-201-555-0142",
     "stir_shaken": "A",
@@ -24,93 +35,153 @@
     {
       "idx": 0,
       "speaker": "agent",
-      "text": "Thank you for calling Verizon, this is Maya. How can I help you today?",
+      "text": "Thank you for calling, this is Maya. I can see you're calling about your bill. Am I speaking with the account holder, Jordan Ellis?",
       "start": 0.3,
-      "end": 5.49
+      "end": 7.22
     },
     {
       "idx": 1,
       "speaker": "caller",
-      "text": "Hi, um, yeah, I was looking at my bill and I think I got charged twice for, uh, the TravelPass?",
-      "start": 6.11,
-      "end": 13.5,
+      "text": "Yes.",
+      "start": 7.84,
+      "end": 9.29,
+      "source": "LibriSpeech 3081-166546-0073",
       "audio_span": [
         0.0,
-        7.391
-      ]
+        1.445
+      ],
+      "scores": {
+        "synthetic_voice": 0.0071,
+        "voice_similarity": 0.6426
+      }
     },
     {
       "idx": 2,
       "speaker": "agent",
-      "text": "I'm sorry about that. Let me pull that up. Can you confirm the billing zip code on the account?",
-      "start": 13.95,
-      "end": 20.98
+      "text": "Thanks, Jordan. I'm looking at your latest bill now. Were you charged for TravelPass more than once?",
+      "start": 9.73,
+      "end": 15.09
     },
     {
       "idx": 3,
       "speaker": "caller",
-      "text": "Sure, it's zero seven three zero two.",
-      "start": 21.39,
-      "end": 24.5,
+      "text": "Yes, many times.",
+      "start": 16.03,
+      "end": 18.51,
+      "source": "LibriSpeech 3081-166546-0075",
       "audio_span": [
-        7.391,
-        10.495
-      ]
+        1.445,
+        3.92
+      ],
+      "scores": {
+        "synthetic_voice": 0.0061,
+        "voice_similarity": 0.8214
+      }
     },
     {
       "idx": 4,
       "speaker": "agent",
-      "text": "Thank you. I do see two TravelPass charges. Do you remember which days you were abroad?",
-      "start": 24.95,
-      "end": 30.87
+      "text": "I'm sorry about that. I can see four TravelPass charges for the same day. That's a billing error on our side.",
+      "start": 18.96,
+      "end": 25.1
     },
     {
       "idx": 5,
       "speaker": "caller",
-      "text": "Oh, let me think, I was in Toronto for like three days and I only turned it on once, I mean I think I only turned it on once, and then the second\u2014",
-      "start": 32.61,
-      "end": 39.4,
+      "text": "Well, well, that's honest-",
+      "start": 26.48,
+      "end": 29.23,
+      "source": "LibriSpeech 3081-166546-0048",
       "audio_span": [
-        10.495,
-        17.28
-      ]
+        3.92,
+        6.675
+      ],
+      "scores": {
+        "synthetic_voice": 0.0079,
+        "voice_similarity": 0.816
+      }
     },
     {
       "idx": 6,
       "speaker": "agent",
-      "text": "Sorry to jump in, was that trip in October?",
-      "start": 39.05,
-      "end": 42.38,
+      "text": "Sorry to jump in, would you like me to reverse the extra charges right now?",
+      "start": 28.88,
+      "end": 33.18,
       "interrupts": true
     },
     {
       "idx": 7,
       "speaker": "caller",
-      "text": "Oh, yes, sorry, October, yeah.",
-      "start": 42.66,
-      "end": 45.98,
+      "text": "Very good, manage it as you will.",
+      "start": 33.89,
+      "end": 37.6,
+      "source": "LibriSpeech 3081-166546-0069",
       "audio_span": [
-        17.28,
-        20.603
-      ]
+        6.675,
+        10.385
+      ],
+      "scores": {
+        "synthetic_voice": 0.0229,
+        "voice_similarity": 0.8563
+      }
     },
     {
       "idx": 8,
       "speaker": "agent",
-      "text": "Got it. The second charge is a duplicate, so I'll reverse it right now.",
-      "start": 46.43,
-      "end": 51.62
+      "text": "Done. Your next bill will be thirty dollars lower.",
+      "start": 38.05,
+      "end": 40.81
     },
     {
       "idx": 9,
       "speaker": "caller",
-      "text": "Oh great, thank you so much, that's, uh, really helpful.",
-      "start": 52.17,
-      "end": 56.73,
+      "text": "What made the difference?",
+      "start": 41.93,
+      "end": 43.87,
+      "source": "LibriSpeech 3081-166546-0076",
       "audio_span": [
-        20.603,
-        25.168
-      ]
+        10.385,
+        12.325
+      ],
+      "scores": {
+        "synthetic_voice": 0.0214,
+        "voice_similarity": 0.8821
+      }
+    },
+    {
+      "idx": 10,
+      "speaker": "agent",
+      "text": "Only one TravelPass day is charged now. I can also transfer you to our travel team to set up alerts for future trips. Would that help?",
+      "start": 44.32,
+      "end": 52.5
+    },
+    {
+      "idx": 11,
+      "speaker": "caller",
+      "text": "No doubt.",
+      "start": 53.05,
+      "end": 54.79,
+      "source": "LibriSpeech 3081-166546-0063",
+      "audio_span": [
+        12.325,
+        14.065
+      ],
+      "scores": {
+        "synthetic_voice": 0.0216,
+        "voice_similarity": 0.8864
+      }
+    },
+    {
+      "idx": 12,
+      "speaker": "agent",
+      "text": "Great, I'm transferring you now. Your verification goes with you, so you won't be asked again.",
+      "start": 55.24,
+      "end": 60.38
     }
-  ]
+  ],
+  "scored_with": {
+    "synthetic_voice": "Spectra-AASIST (lab260, rev eb65c26)",
+    "voiceprint": "NVIDIA TitaNet-Large (speakerverification_en_titanet_large)",
+    "date": "2026-11-12"
+  }
 }

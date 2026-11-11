@@ -7,7 +7,6 @@
       "+1-201-555-0142",
       "+1-201-555-0177"
     ],
-    "voiceprint": "enrollment/ACC-1001.wav",
     "risk_flags": [],
     "security_events_7d": [],
     "billing_history": {
@@ -16,7 +15,26 @@
       "last_bill": 142.18
     },
     "active_tickets": [],
-    "pending_requests": []
+    "voiceprint": "enrollment/ACC-1001.wav",
+    "voiceprint_source": "LibriSpeech dev-clean speaker 3081 (real voice, CC BY 4.0), utterances 3081-166546-0030, 3081-166546-0089"
+  },
+  "ACC-1002": {
+    "name": "Christopher Hale",
+    "tenure_years": 9,
+    "plan": "Unlimited Ultimate (1 line)",
+    "anis_on_file": [
+      "+1-617-555-0108"
+    ],
+    "risk_flags": [],
+    "security_events_7d": [],
+    "billing_history": {
+      "credits_90d": 0,
+      "retention_offers_12m": 0,
+      "last_bill": 96.4
+    },
+    "active_tickets": [],
+    "voiceprint": "enrollment/ACC-1002.wav",
+    "voiceprint_source": "LibriSpeech dev-clean speaker 2428 (real voice, CC BY 4.0), utterances 2428-83699-0018, 2428-83699-0000"
   },
   "ACC-1003": {
     "name": "Alex Chen",
@@ -25,7 +43,6 @@
     "anis_on_file": [
       "+1-646-555-0119"
     ],
-    "voiceprint": "enrollment/ACC-1003.wav",
     "risk_flags": [
       "credentials_seen_in_breach_dump"
     ],
@@ -39,7 +56,8 @@
       "last_bill": 78.4
     },
     "active_tickets": [],
-    "pending_requests": []
+    "voiceprint": "enrollment/ACC-1003.wav",
+    "voiceprint_source": "LibriSpeech dev-clean speaker 1919 (real voice, CC BY 4.0), utterances 1919-142785-0011, 1919-142785-0036"
   },
   "ACC-2002": {
     "name": "Sam Rivera",
@@ -48,7 +66,6 @@
     "anis_on_file": [
       "+1-312-555-0164"
     ],
-    "voiceprint": "enrollment/ACC-2002.wav",
     "risk_flags": [],
     "security_events_7d": [],
     "billing_history": {
@@ -59,6 +76,25 @@
     "active_tickets": [
       "TCK-88412 billing dispute (closed, credit $40)"
     ],
-    "pending_requests": []
+    "voiceprint": "enrollment/ACC-2002.wav",
+    "voiceprint_source": "LibriSpeech dev-clean speaker 652 (real voice, CC BY 4.0), utterances 652-129742-0009, 652-130726-0002"
+  },
+  "ACC-3004": {
+    "name": "Morgan Lee",
+    "tenure_years": 3,
+    "plan": "Unlimited Welcome (2 lines)",
+    "anis_on_file": [
+      "+1-415-555-0137"
+    ],
+    "risk_flags": [],
+    "security_events_7d": [],
+    "billing_history": {
+      "credits_90d": 0,
+      "retention_offers_12m": 0,
+      "last_bill": 84.0
+    },
+    "active_tickets": [],
+    "voiceprint": "enrollment/ACC-3004.wav",
+    "voiceprint_source": "LibriSpeech dev-clean speaker 6313 (real voice, CC BY 4.0), utterances 6313-66125-0027, 6313-66129-0021"
   }
 }

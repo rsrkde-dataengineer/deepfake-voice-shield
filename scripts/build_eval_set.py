@@ -1,62 +1,86 @@
-"""Build the spike evaluation set + real-audio demo calls (run in the generator venv).
+"""Build the labelled evaluation sets: real human speech vs. synthetic speech (run in .venv-gen).
 
-    .venv-gen/bin/python scripts/build_sample_set.py [--clone-targets 8]
+    .venv-gen/bin/python scripts/build_eval_set.py                    # both splits, ~30 min each on an M1
+    .venv-gen/bin/python scripts/build_eval_set.py --split test-clean
 
-Bona fide speech: LibriSpeech dev-clean (CC-BY-4.0), downloaded to data/external/.
-Spoofed speech, all generated locally:
-  kokoro            Kokoro-82M stock TTS voices (Apache-2.0)                  -> "AI bot" attack
-  chatterbox_clone  Chatterbox zero-shot clones of LibriSpeech speakers (MIT)  -> "voice clone" attack
-  macos_say         macOS `say` voices (older concatenative/parametric TTS)
+dev-clean   calibration split: the voiceprint thresholds were set here.
+test-clean  held-out split (the one in the friend's TitaNet notebook): new speakers, new clone targets,
+            and Kokoro / macOS voices that appear nowhere else.
 
-Writes (git-ignored, nothing here is redistributed):
-  data/samples/eval/manifest.csv   path,label,attack,speaker,target,role,text
-  data/samples/demo/               accounts.json, enrollment/, audio/, calls/ - same three stories
-                                   as data/, but with real speech; open with VSHIELD_DATA=data/samples/demo
+Per split, in data/external/eval/<split>/ (git-ignored, not redistributed):
+  enroll/            2 utterances per speaker: the enrolled voiceprint
+  bonafide/          3 more utterances per speaker: real human test clips
+  chatterbox_clone/  4 clips per clone target (Chatterbox, MIT), cloned from a separate reference utterance
+  kokoro/            4 clips per Kokoro-82M stock voice (Apache-2.0)
+  macos_say/         3 clips per macOS voice (older TTS)
+  manifest.csv       path,label,attack,speaker,target,role,text
+Clips already on disk are reused, so a rerun only generates what is missing.
 """
 from __future__ import annotations
 
 import argparse
 import csv
-import json
 import subprocess
 import sys
 from pathlib import Path
 
 import numpy as np
 import soundfile as sf
-from scipy.signal import resample_poly, welch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / "scripts"))
 
-from vshield.dsp import SR, save_wav  # noqa: E402
-import generate_demo_data as demo  # noqa: E402
+from vshield.audio import SR, resample, save_wav  # noqa: E402
 
 LIBRI = ROOT / "data" / "external" / "librispeech" / "LibriSpeech"
-OUT = ROOT / "data" / "samples"
-KOKORO_VOICES = ["af_heart", "af_bella", "am_michael", "am_fenrir", "bf_emma", "bm_george", "af_nicole", "am_puck"]
-SAY_VOICES = ["Samantha", "Daniel", "Karen", "Rishi", "Moira", "Fred"]
-CALL_LINES = [text for spec in demo.CALLS.values() for role, text, _ in spec["script"] if role == "caller"]
+OUT = ROOT / "data" / "external" / "eval"
+VOICES = {
+    "dev-clean": {"kokoro": ["af_heart", "af_bella", "am_michael", "am_fenrir", "bf_emma", "bm_george", "af_nicole", "am_puck"],
+                  "say": ["Samantha", "Daniel", "Karen", "Rishi", "Moira", "Fred"]},
+    "test-clean": {"kokoro": ["af_sarah", "af_sky", "am_adam", "am_eric", "bf_isabella", "bm_lewis", "af_river", "am_liam"],
+                   "say": ["Tessa", "Aman", "Eddy (English (US))", "Flo (English (US))", "Reed (English (US))",
+                           "Shelley (English (US))"]},
+}
+# Call-centre lines for the fake voices (half of the fake clips say these, half say LibriSpeech sentences).
+CALL_LINES = [
+    "Hi, um, yeah, I was looking at my bill and I think I got charged twice for, uh, the TravelPass?",
+    "Sure, it's zero seven three zero two.",
+    "Oh, let me think, I was in Toronto for like three days and I only turned it on once, I mean I think I only "
+    "turned it on once, and then the second—",
+    "Oh, yes, sorry, October, yeah.",
+    "Oh great, thank you so much, that's, uh, really helpful.",
+    "Hi Daniel. My phone was stolen this morning and I need to move my number to a new SIM card right away.",
+    "Yes, it's one zero zero one six.",
+    "I can't access that email right now. Can you send the code to a different email instead? I'm traveling and it's urgent.",
+    "Silver maple eighteen.",
+    "Sure. Please hurry, I really need my number working today.",
+    "Hello Priya. This is Sam Rivera, the account holder. I have been a loyal customer for six years and I would like "
+    "to review my monthly bill.",
+    "My current bill is two hundred thirty one dollars. A competitor is offering a comparable plan for one hundred "
+    "sixty dollars. I would like to discuss a retention discount.",
+    "Thank you. Specifically, I am requesting a recurring monthly credit of twenty five dollars for twelve months, "
+    "otherwise I will need to port my number to the competitor, and I would also like the activation fees waived "
+    "on my next upgrade.",
+    "Yes, all three lines are on my account. Can you confirm the credit amount?",
+    "Green lantern sixty two.",
+    "Thank you. I would appreciate the twenty five dollar monthly credit applied today.",
+]
 
 
-def to_sr(y: np.ndarray, sr: int) -> np.ndarray:
-    y = y.astype(np.float32)
-    if sr != SR:
-        g = np.gcd(sr, SR)
-        y = resample_poly(y, SR // g, sr // g).astype(np.float32)
+def to16k(y: np.ndarray, sr: int) -> np.ndarray:
+    y = resample(np.asarray(y, dtype=np.float32), sr, SR)
     return 0.9 * y / (np.abs(y).max() + 1e-9)
 
 
-def librispeech() -> dict[str, list[dict]]:
-    """speaker -> utterances (4-15 s), each {path, text, dur}."""
+def librispeech(split: str) -> tuple[dict[str, list[dict]], dict[str, str]]:
+    """speaker -> utterances of 4-15 s, each {path, text, dur}; plus speaker -> gender."""
     gender = {}
     for line in (LIBRI / "SPEAKERS.TXT").read_text().splitlines():
         parts = [p.strip() for p in line.split("|")]
-        if len(parts) >= 3 and parts[2] == "dev-clean":
+        if len(parts) >= 3 and parts[2] == split:
             gender[parts[0]] = parts[1]
-    spk = {}
-    for trans in sorted((LIBRI / "dev-clean").glob("*/*/*.trans.txt")):
+    spk: dict[str, list[dict]] = {}
+    for trans in sorted((LIBRI / split).glob("*/*/*.trans.txt")):
         for line in trans.read_text().splitlines():
             uid, text = line.split(" ", 1)
             path = trans.parent / f"{uid}.flac"
@@ -66,131 +90,85 @@ def librispeech() -> dict[str, list[dict]]:
     return {s: u for s, u in spk.items() if len(u) >= 8}, gender
 
 
-def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--clone-targets", type=int, default=8)
-    args = ap.parse_args()
-
+def build(split: str, n_targets: int) -> None:
     import torch
     from chatterbox.tts import ChatterboxTTS
     from kokoro import KPipeline
 
-    dev = "mps" if torch.backends.mps.is_available() else "cpu"
-    ev, dm = OUT / "eval", OUT / "demo"
-    for d in (ev / "bonafide", ev / "enroll", ev / "kokoro", ev / "chatterbox_clone", ev / "macos_say",
-              dm / "enrollment", dm / "audio", dm / "calls"):
-        d.mkdir(parents=True, exist_ok=True)
-    rows = []
+    out = OUT / split
+    for d in ("enroll", "bonafide", "chatterbox_clone", "kokoro", "macos_say"):
+        (out / d).mkdir(parents=True, exist_ok=True)
+    rows: list[dict] = []
 
     def add(y, rel, label, attack, speaker, target, role, text):
-        if not (ev / rel).exists():
-            save_wav(str(ev / rel), y() if callable(y) else y)
-        rows.append({"path": f"eval/{rel}", "label": label, "attack": attack, "speaker": speaker,
-                     "target": target, "role": role, "text": text})
+        if not (out / rel).exists():
+            save_wav(str(out / rel), y() if callable(y) else y, SR)
+        rows.append({"path": rel, "label": label, "attack": attack, "speaker": speaker, "target": target,
+                     "role": role, "text": text})
 
-    # ---- bona fide: per speaker 2 enrollment, 3 test, 1 clone reference -------------
-    spk, gender = librispeech()
+    spk, gender = librispeech(split)
     speakers = sorted(spk)
-    print(f"{len(speakers)} LibriSpeech speakers")
     plan = {}
     for s in speakers:
         u = sorted(spk[s], key=lambda x: x["path"].name)
-        plan[s] = {"enroll": u[0:2], "test": u[2:5], "ref": max(u[5:], key=lambda x: x["dur"]), "spare": u[5:]}
+        plan[s] = {"enroll": u[0:2], "test": u[2:5], "ref": max(u[5:], key=lambda x: x["dur"])}
         for i, x in enumerate(plan[s]["enroll"]):
-            add(to_sr(*sf.read(str(x["path"]))), f"enroll/{s}_{i}.wav", "bonafide", "none", s, s, "enroll", x["text"])
+            add(lambda x=x: to16k(*sf.read(str(x["path"]))), f"enroll/{s}_{i}.wav", "bonafide", "none", s, s, "enroll", x["text"])
         for i, x in enumerate(plan[s]["test"]):
-            add(to_sr(*sf.read(str(x["path"]))), f"bonafide/{s}_{i}.wav", "bonafide", "none", s, s, "test", x["text"])
+            add(lambda x=x: to16k(*sf.read(str(x["path"]))), f"bonafide/{s}_{i}.wav", "bonafide", "none", s, s, "test", x["text"])
+    print(f"{split}: {len(speakers)} speakers")
 
-    f_spk = [s for s in speakers if gender.get(s) == "F"]
-    m_spk = [s for s in speakers if gender.get(s) == "M"]
-    half = args.clone_targets // 2
-    targets = f_spk[:half] + m_spk[:args.clone_targets - half]
-
-    # ---- Chatterbox zero-shot clones of target speakers ------------------------------
-    print(f"Chatterbox on {dev}: cloning {len(targets)} speakers")
-    cb = ChatterboxTTS.from_pretrained(device=dev)
+    half = n_targets // 2
+    targets = [s for s in speakers if gender.get(s) == "F"][:half] + [s for s in speakers if gender.get(s) == "M"][:n_targets - half]
+    dev = "mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu"
+    cloner = None
+    n = len(CALL_LINES)
     for ti, s in enumerate(targets):
-        texts = [CALL_LINES[(2 * ti) % len(CALL_LINES)], CALL_LINES[(2 * ti + 1) % len(CALL_LINES)],
-                 plan[s]["test"][0]["text"], plan[s]["test"][1]["text"]]   # 2 call lines + 2 content-matched
-        for j, text in enumerate(texts):   # generated lazily: clips already on disk are reused
-            gen = lambda text=text: to_sr(cb.generate(text, audio_prompt_path=str(plan[s]["ref"]["path"]))
-                                          .squeeze(0).cpu().numpy(), cb.sr)
-            add(gen, f"chatterbox_clone/{s}_{j}.wav", "spoof", "chatterbox_clone", f"clone:{s}", s, "test", text)
-        print(f"  cloned {s}")
-
-    # ---- Kokoro stock voices -----------------------------------------------------------
-    kp = {"a": KPipeline(lang_code="a"), "b": KPipeline(lang_code="b")}
-
-    def kokoro(text, voice):
-        audio = [a for _, _, a in kp[voice[0]](text, voice=voice)]
-        return to_sr(np.concatenate([np.asarray(a) for a in audio]), 24_000)
-
-    for vi, v in enumerate(KOKORO_VOICES):
-        lib = plan[speakers[vi]]["test"]
-        texts = [CALL_LINES[(2 * vi) % len(CALL_LINES)], CALL_LINES[(2 * vi + 1) % len(CALL_LINES)], lib[0]["text"], lib[1]["text"]]
+        texts = [CALL_LINES[(2 * ti) % n], CALL_LINES[(2 * ti + 1) % n], plan[s]["test"][0]["text"], plan[s]["test"][1]["text"]]
         for j, text in enumerate(texts):
-            add(kokoro(text, v), f"kokoro/{v}_{j}.wav", "spoof", "kokoro", f"kokoro:{v}", "", "test", text)
-    print("Kokoro done")
+            def gen(text=text, s=s):
+                nonlocal cloner
+                cloner = cloner or ChatterboxTTS.from_pretrained(device=dev)
+                wav = cloner.generate(text, audio_prompt_path=str(plan[s]["ref"]["path"]))
+                return to16k(wav.squeeze(0).cpu().numpy(), cloner.sr)
+            add(gen, f"chatterbox_clone/{s}_{j}.wav", "spoof", "chatterbox_clone", f"clone:{s}", s, "test", text)
+        print(f"  clone target {s} done")
 
-    # ---- macOS say ---------------------------------------------------------------------
-    tmp = ev / "macos_say" / "_tmp.wav"
-    for vi, v in enumerate(SAY_VOICES):
+    kp = {"a": KPipeline(lang_code="a", repo_id="hexgrad/Kokoro-82M"),
+          "b": KPipeline(lang_code="b", repo_id="hexgrad/Kokoro-82M")}
+    for vi, v in enumerate(VOICES[split]["kokoro"]):
+        lib = plan[speakers[vi]]["test"]
+        texts = [CALL_LINES[(2 * vi) % n], CALL_LINES[(2 * vi + 1) % n], lib[0]["text"], lib[1]["text"]]
+        for j, text in enumerate(texts):
+            gen = lambda text=text, v=v: to16k(np.concatenate([np.asarray(a) for _, _, a in kp[v[0]](text, voice=v)]), 24_000)
+            add(gen, f"kokoro/{v}_{j}.wav", "spoof", "kokoro", f"kokoro:{v}", "", "test", text)
+
+    tmp = out / "macos_say" / "_tmp.wav"
+    for vi, v in enumerate(VOICES[split]["say"]):
+        slug = v.split(" ")[0]
         for j in range(3):
-            text = CALL_LINES[(3 * vi + j) % len(CALL_LINES)]
-            subprocess.run(["say", "-v", v, "--data-format=LEI16@16000", "-o", str(tmp), text], check=True)
-            y, sr = sf.read(str(tmp))
-            add(to_sr(y, sr), f"macos_say/{v}_{j}.wav", "spoof", "macos_say", f"say:{v}", "", "test", text)
-    tmp.unlink()
-    print("macOS say done")
+            text = CALL_LINES[(3 * vi + j) % n]
+            def gen(text=text, v=v):
+                subprocess.run(["say", "-v", v, "--data-format=LEI16@16000", "-o", str(tmp), text], check=True)
+                y, sr = sf.read(str(tmp))
+                return to16k(y, sr)
+            add(gen, f"macos_say/{slug}_{j}.wav", "spoof", "macos_say", f"say:{slug}", "", "test", text)
+    tmp.unlink(missing_ok=True)
 
-    with open(ev / "manifest.csv", "w", newline="") as f:
+    with open(out / "manifest.csv", "w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=list(rows[0]))
         w.writeheader()
         w.writerows(rows)
-    print(f"{len(rows)} clips -> {ev / 'manifest.csv'}")
+    print(f"{split}: {len(rows)} clips -> {out / 'manifest.csv'}")
 
-    # ---- real-audio demo calls: same stories, real speech ------------------------------
-    # Jordan = a real speaker (genuine call uses their real utterances);
-    # Alex   = a clone target (clone call = Chatterbox clone of Alex speaking the SIM-swap script);
-    # Sam    = another real speaker (bot call = Kokoro stock voice speaking the negotiation script).
-    # Cast the best-recorded speakers: LibriSpeech is home-recorded audiobooks and some microphones are
-    # muffled; a clone copies that channel too, so it would sound poor in the demo.
-    def brightness(s):
-        y, sr = sf.read(str(plan[s]["ref"]["path"]))
-        f, p = welch(y, sr)
-        return p[f > 2000].sum() / p.sum()
 
-    jordan = max((s for s in m_spk if s not in targets), key=brightness)
-    alex = max(targets, key=brightness)
-    sam = max((s for s in f_spk if s not in targets), key=brightness)
-    cast = {"ACC-1001": jordan, "ACC-1003": alex, "ACC-2002": sam}
-    accounts = json.loads(json.dumps(demo.ACCOUNTS))
-    for acc, s in cast.items():
-        y = np.concatenate([to_sr(*sf.read(str(x["path"]))) for x in plan[s]["enroll"]])
-        save_wav(str(dm / "enrollment" / f"{acc}.wav"), y)
-        accounts[acc]["voiceprint"] = f"enrollment/{acc}.wav"
-    (dm / "accounts.json").write_text(json.dumps(accounts, indent=2))
-
-    genuine_utts = iter(plan[jordan]["test"] + plan[jordan]["spare"])
-
-    def genuine_voice(text, i):
-        x = next(genuine_utts)
-        return to_sr(*sf.read(str(x["path"]))), x["text"]   # real speech, so the transcript is what was said
-
-    def clone_voice(text, i):
-        wav = cb.generate(text, audio_prompt_path=str(plan[alex]["ref"]["path"]))
-        return to_sr(wav.squeeze(0).cpu().numpy(), cb.sr), text
-
-    def bot_voice(text, i):
-        return kokoro(text, "am_michael"), text
-
-    for cid, voice in (("genuine_customer", genuine_voice), ("voice_clone", clone_voice), ("ai_negotiator", bot_voice)):
-        call = demo.build_call(cid, demo.CALLS[cid], voice=voice, out=dm)
-        call["title"] += " (real audio)"
-        (dm / "calls" / f"{cid}.json").write_text(json.dumps(call, indent=2))
-        print(f"  demo call {cid}: {call['turns'][-1]['end']:.1f}s")
-    (dm / "cast.json").write_text(json.dumps({"librispeech_speakers": cast, "clone_targets": targets}, indent=2))
-    print(f"Real-audio demo -> {dm}")
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--split", choices=list(VOICES), action="append")
+    ap.add_argument("--clone-targets", type=int, default=8)
+    args = ap.parse_args()
+    for split in args.split or list(VOICES):
+        build(split, args.clone_targets)
 
 
 if __name__ == "__main__":

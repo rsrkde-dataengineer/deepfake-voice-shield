@@ -1,18 +1,19 @@
-"""Evaluate the real backends on the sample set (roadmap item 3, spike version).
+"""Measure both models on the labelled evaluation sets (run in .venv-ml).
 
-    .venv-ml/bin/python scripts/evaluate.py [--spoof-models spectra hf:<model_id> ...]
+    .venv-ml/bin/python scripts/evaluate.py          # -> reports/eval.json (read by the Model evaluation page)
 
-Needs data/samples/eval/manifest.csv from scripts/build_sample_set.py.
-Every test runs twice: clean 16 kHz, and through a simulated phone line (8 kHz G.711).
-Writes reports/spike_eval.json.
+Sets come from scripts/build_eval_set.py: dev-clean (calibration split) and test-clean (held out; the split the
+friend's TitaNet notebook used). Every test runs twice: on clean 16 kHz audio, and through a simulated phone line
+(8 kHz G.711). Decision points are fixed in advance: synthetic probability 0.5 (the model card's threshold) and
+voiceprint match at 0.70 (calibrated on dev-clean only).
 """
 from __future__ import annotations
 
-import argparse
 import csv
 import json
 import sys
 import time
+from datetime import date
 from pathlib import Path
 
 import numpy as np
@@ -20,115 +21,95 @@ import numpy as np
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from vshield.dsp import SR, load_wav, telephone  # noqa: E402
-from vshield.signals import acoustic, voiceprint  # noqa: E402
+from vshield import detectors  # noqa: E402
+from vshield.audio import SR, load_wav, telephone  # noqa: E402
+from vshield.signals.voiceprint import THRESHOLDS  # noqa: E402
 
-SAMPLES = ROOT / "data" / "samples"
+EVAL = ROOT / "data" / "external" / "eval"
 CHANNELS = {"clean": lambda y: y, "telephone": telephone}
+MATCH = THRESHOLDS[1]
 
 
 def eer(pos: np.ndarray, neg: np.ndarray) -> tuple[float, float]:
     """Equal error rate and its threshold; higher score = more 'positive'."""
-    best = (2.0, 0.0, 1.0)
-    for t in np.unique(np.concatenate([pos, neg])):
-        frr, far = np.mean(pos < t), np.mean(neg >= t)
-        if abs(far - frr) < best[0]:
-            best = (abs(far - frr), t, (far + frr) / 2)
-    return float(best[2]), float(best[1])
+    t = np.unique(np.r_[pos, neg])
+    frr = np.searchsorted(np.sort(pos), t, side="left") / len(pos)        # positives below t
+    far = 1 - np.searchsorted(np.sort(neg), t, side="left") / len(neg)    # negatives at or above t
+    i = int(np.argmin(np.abs(far - frr)))
+    return float((far[i] + frr[i]) / 2), float(t[i])
 
 
-def spoof_score(model: str, y: np.ndarray) -> float:
-    """Probability-like synthetic score in [0, 1] (0.5 = the model's own decision point)."""
-    if model == "spectra":
-        return acoustic._spectra_score(y)[0]
-    return acoustic._hf_score(y, model[3:])[0]
+def r3(xs) -> list[float]:
+    return [round(float(x), 3) for x in xs]
 
 
-def eval_spoof(model: str, rows: list[dict], audio: dict) -> dict:
-    out = {}
+def evaluate_split(split: str) -> dict:
+    rows = list(csv.DictReader(open(EVAL / split / "manifest.csv")))
+    audio = {r["path"]: load_wav(str(EVAL / split / r["path"]))[0] for r in rows}
+    tests = [r for r in rows if r["role"] == "test"]
+    attacks = sorted({r["attack"] for r in tests if r["label"] == "spoof"})
+    speakers = sorted({r["speaker"] for r in rows if r["role"] == "enroll"})
+    out = {"counts": {"speakers": len(speakers), "real_test_clips": sum(r["label"] == "bonafide" for r in tests),
+                      "fake_test_clips": sum(r["label"] == "spoof" for r in tests),
+                      **{f"{a}_clips": sum(r["attack"] == a for r in tests) for a in attacks}},
+           "channels": {}}
     for ch, fn in CHANNELS.items():
-        scores, secs, t0 = {}, 0.0, time.time()
-        for r in rows:
+        # synthetic voice
+        t0, secs, p = time.time(), 0.0, {}
+        for r in tests:
             y = fn(audio[r["path"]])
-            scores[r["path"]] = spoof_score(model, y)
+            p[r["path"]] = detectors.synthetic_probability(y)
             secs += len(y) / SR
         rtf = (time.time() - t0) / secs
-        bona = np.array([scores[r["path"]] for r in rows if r["label"] == "bonafide"])
-        spoof = np.array([scores[r["path"]] for r in rows if r["label"] == "spoof"])
-        e, thr = eer(spoof, bona)
-        res = {"eer": e, "eer_threshold": thr, "false_alarm_at_0.5": float(np.mean(bona > 0.5)),
-               "bonafide_p_max": float(bona.max()), "bonafide_p_p95": float(np.percentile(bona, 95)),
-               "spoof_p_min": float(spoof.min()), "spoof_p_p5": float(np.percentile(spoof, 5)),
-               "n_bonafide": len(bona), "real_time_factor": rtf, "detected_at_0.5": {}}
-        for atk in sorted({r["attack"] for r in rows if r["label"] == "spoof"}):
-            s = np.array([scores[r["path"]] for r in rows if r["attack"] == atk])
-            res["detected_at_0.5"][atk] = {"rate": float(np.mean(s > 0.5)), "n": len(s)}
-        out[ch] = res
-        print(f"  {model:50s} {ch:9s} EER {e:6.1%}  false alarms {res['false_alarm_at_0.5']:5.1%}  "
-              + "  ".join(f"{a} {v['rate']:.0%}" for a, v in res["detected_at_0.5"].items()) + f"  RTF {rtf:.3f}")
-    return out
-
-
-def eval_voiceprint(rows: list[dict], audio: dict) -> dict:
-    lo, hi = voiceprint.THRESH["titanet"]
-    out = {}
-    enroll_rows = [r for r in rows if r["role"] == "enroll"]
-    speakers = sorted({r["speaker"] for r in enroll_rows})
-    tests = [r for r in rows if r["role"] == "test" and (r["label"] == "bonafide" or r["attack"] == "chatterbox_clone")]
-    for ch, fn in CHANNELS.items():
-        enr = {s: voiceprint._embed_titanet(fn(np.concatenate([audio[r["path"]] for r in enroll_rows if r["speaker"] == s])))
+        real = np.array([p[r["path"]] for r in tests if r["label"] == "bonafide"])
+        fake = np.array([p[r["path"]] for r in tests if r["label"] == "spoof"])
+        e, thr = eer(fake, real)
+        sv = {"eer": e, "eer_threshold": thr, "false_alarm_rate": float(np.mean(real > 0.5)),
+              "detection_rate": {a: float(np.mean([p[r["path"]] > 0.5 for r in tests if r["attack"] == a])) for a in attacks},
+              "seconds_per_audio_second": round(rtf, 4),
+              "scores": {"real": r3(real), **{a: r3([p[r["path"]] for r in tests if r["attack"] == a]) for a in attacks}}}
+        # voiceprint
+        enr = {s: detectors.voice_embedding(fn(np.concatenate([audio[r["path"]] for r in rows
+                                                                if r["role"] == "enroll" and r["speaker"] == s])))
                for s in speakers}
-        emb = {r["path"]: voiceprint._embed_titanet(fn(audio[r["path"]])) for r in tests}
-        target, nontarget, clone = [], [], []
+        same, other, clone, fooled = [], [], [], []
         for r in tests:
-            for s in speakers:
-                sim = voiceprint.cosine(emb[r["path"]], enr[s])
-                if r["label"] == "bonafide":
-                    (target if s == r["speaker"] else nontarget).append(sim)
-                elif s == r["target"]:
-                    clone.append(sim)
-        target, nontarget, clone = map(np.array, (target, nontarget, clone))
-        e, thr = eer(target, nontarget)
-        res = {"eer": e, "eer_threshold": thr,
-               "target_mean": float(target.mean()), "nontarget_mean": float(nontarget.mean()),
-               "clone_mean": float(clone.mean()),
-               "target_min": float(target.min()), "target_p5": float(np.percentile(target, 5)),
-               "nontarget_max": float(nontarget.max()), "nontarget_p99": float(np.percentile(nontarget, 99)),
-               "clone_min": float(clone.min()), "clone_max": float(clone.max()),
-               "clone_accepted_at_eer_threshold": float(np.mean(clone >= thr)),
-               "clone_accepted_at_0.70": float(np.mean(clone >= 0.70)),
-               f"genuine_accepted_at_{hi}": float(np.mean(target >= hi)),
-               f"impostor_accepted_at_{hi}": float(np.mean(nontarget >= hi)),
-               f"clone_accepted_at_{hi}": float(np.mean(clone >= hi)),
-               "n_target": len(target), "n_nontarget": len(nontarget), "n_clone": len(clone)}
-        out[ch] = res
-        print(f"  TitaNet {ch:9s} EER {e:5.1%} @ {thr:.2f} | cosine genuine {target.mean():.2f}  impostor "
-              f"{nontarget.mean():.2f}  clone {clone.mean():.2f} | clones accepted @EER thr {res['clone_accepted_at_eer_threshold']:.0%}")
+            if r["label"] == "bonafide":
+                e_t = detectors.voice_embedding(fn(audio[r["path"]]))
+                for s in speakers:
+                    (same if s == r["speaker"] else other).append(detectors.cosine(e_t, enr[s]))
+            elif r["attack"] == "chatterbox_clone":
+                sim = detectors.cosine(detectors.voice_embedding(fn(audio[r["path"]])), enr[r["target"]])
+                clone.append(sim)
+                if sim >= MATCH:
+                    fooled.append(p[r["path"]] > 0.5)
+        same, other, clone = map(np.array, (same, other, clone))
+        e, thr = eer(same, other)
+        vp = {"eer": e, "eer_threshold": thr,
+              "accept_rate": {"same_speaker": float(np.mean(same >= MATCH)), "other_speaker": float(np.mean(other >= MATCH)),
+                              "clone": float(np.mean(clone >= MATCH))},
+              "scores": {"same_speaker": r3(same), "other_speaker": r3(other), "clone": r3(clone)}}
+        out["channels"][ch] = {
+            "synthetic_voice": sv, "voiceprint": vp,
+            "clones_fooling_voiceprint": len(fooled), "of_those_flagged_synthetic": int(np.sum(fooled))}
+        print(f"  {split:10s} {ch:9s} spoof EER {sv['eer']:5.1%}  false alarms {sv['false_alarm_rate']:5.1%}  "
+              f"caught {', '.join(f'{a} {v:.0%}' for a, v in sv['detection_rate'].items())}  |  voiceprint EER {e:5.1%}"
+              f"  clones accepted {vp['accept_rate']['clone']:.0%}  |  {np.sum(fooled)}/{len(fooled)} of those flagged")
     return out
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--spoof-models", nargs="+", default=["spectra", "hf:MelodyMachine/Deepfake-audio-detection-V2"])
-    args = ap.parse_args()
-
-    rows = list(csv.DictReader(open(SAMPLES / "eval" / "manifest.csv")))
-    audio = {r["path"]: load_wav(str(SAMPLES / r["path"]))[0] for r in rows}
-    tests = [r for r in rows if r["role"] == "test"]
-    print(f"{len(rows)} clips: {sum(r['label'] == 'bonafide' for r in tests)} bona fide test, "
-          f"{sum(r['label'] == 'spoof' for r in tests)} spoof, {sum(r['role'] == 'enroll' for r in rows)} enrollment")
-
-    # warm up (model download/load is not part of latency)
-    acoustic._spectra(); voiceprint._titanet()
-    report = {"anti_spoofing": {}, "voiceprint": {}}
-    for m in args.spoof_models:
-        report["anti_spoofing"][m] = eval_spoof(m, tests, audio)
-    report["voiceprint"]["titanet"] = eval_voiceprint(rows, audio)
-
+    splits = [s for s in ("dev-clean", "test-clean") if (EVAL / s / "manifest.csv").exists()]
+    if not splits:
+        sys.exit("No evaluation sets - run scripts/build_eval_set.py first")
+    detectors.load()
+    report = {"generated": date.today().isoformat(), "models": detectors.MODEL_NAMES,
+              "decision_points": {"synthetic_voice": 0.5, "voiceprint_match": MATCH},
+              "splits": {s: evaluate_split(s) for s in splits}}
     out = ROOT / "reports"
     out.mkdir(exist_ok=True)
-    (out / "spike_eval.json").write_text(json.dumps(report, indent=2))
-    print(f"-> {out / 'spike_eval.json'}")
+    (out / "eval.json").write_text(json.dumps(report) + "\n")
+    print(f"-> {out / 'eval.json'}")
 
 
 if __name__ == "__main__":

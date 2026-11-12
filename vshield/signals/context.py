@@ -16,34 +16,29 @@ CREDIT_INTENTS = {"cancel_service", "retention", "billing_dispute"}
 
 
 def telecom(meta: dict, account: dict) -> SignalResult:
-    s, reasons = 0.10, []
+    clues: list[tuple[float, str]] = []   # (added risk, reason)
     att = meta.get("stir_shaken", "A")
     on_file = meta.get("ani") in account.get("anis_on_file", [])
     if att == "C":
-        s += 0.25
-        reasons.append("STIR/SHAKEN attestation C (caller ID not verified by originating carrier)")
+        clues.append((0.25, "STIR/SHAKEN attestation C (caller ID not verified by originating carrier)"))
         if on_file:
-            s += 0.10
-            reasons.append("ANI matches the account but with C attestation - possible caller-ID spoofing")
+            clues.append((0.10, "ANI matches the account but with C attestation - possible caller-ID spoofing"))
     elif att == "B":
-        s += 0.12
-        reasons.append("STIR/SHAKEN attestation B (partial)")
+        clues.append((0.12, "STIR/SHAKEN attestation B (partial)"))
     if meta.get("line_type") == "voip":
-        s += 0.15
-        reasons.append(f"Originates from VoIP ({meta.get('carrier', 'unknown')})")
+        clues.append((0.15, f"Originates from VoIP ({meta.get('carrier', 'unknown')})"))
     if not on_file:
-        s += 0.15
-        reasons.append("Calling number is not on file for this account")
+        clues.append((0.15, "Calling number is not on file for this account"))
     if meta.get("calls_from_ani_24h", 0) > 5:
-        s += 0.15
-        reasons.append(f"{meta['calls_from_ani_24h']} calls from this number in 24h")
+        clues.append((0.15, f"{meta['calls_from_ani_24h']} calls from this number in 24h"))
     if meta.get("accounts_called_from_ani_7d", 0) > 3:
-        s += 0.20
-        reasons.append(f"Same number touched {meta['accounts_called_from_ani_7d']} different accounts this week (bot-farm pattern)")
+        clues.append((0.20, f"Same number touched {meta['accounts_called_from_ani_7d']} different accounts this week "
+                            "(bot farm or third-party call centre)"))
     dtmf = meta.get("ivr_dtmf_timing_ms") or []
     if len(dtmf) >= 3 and np.std(dtmf) < 30:
-        s += 0.15
-        reasons.append(f"IVR keypresses perfectly evenly spaced (~{int(np.mean(dtmf))} ms) - machine-entered")
+        clues.append((0.15, f"IVR keypresses perfectly evenly spaced (~{int(np.mean(dtmf))} ms) - machine-entered"))
+    s = 0.10 + sum(c for c, _ in clues)
+    reasons = [r for _, r in sorted(clues, key=lambda c: -c[0])]   # strongest clue first (stable for ties)
     if not reasons:
         reasons.append("Known number, verified caller ID (STIR/SHAKEN A), mobile line")
     return SignalResult("telecom", "Telecom & ANI signals", float(np.clip(s, 0.05, 0.95)), 0.6, reasons,

@@ -16,6 +16,13 @@ def is_verified(snap: RiskSnapshot) -> bool:
     return snap.action == "PROCEED" and snap.verdict == "Likely genuine customer"
 
 
+def check_line(r: dict) -> str:
+    """One identity check in plain words: an account-history question or the customer's answer on their phone."""
+    if r["type"] == "record_question":
+        return f"Asked \"{r['question']}\" - answer \"{r['answer']}\": {r['verdict']}"
+    return f"Confirmation on the phone on file: {r['verdict']}"
+
+
 def _evidence(snap: RiskSnapshot) -> list[str]:
     out = []
     sv, vp = snap.signals.get("synthetic_voice"), snap.signals.get("voiceprint")
@@ -48,6 +55,8 @@ def handoff_card(call: dict, account: dict, snap: RiskSnapshot, history: list[Ri
     if snap.challenge_results:
         lines += ["**Liveness checks done:**",
                   *[f"- Repeat \"{r['phrase']}\": {r['verdict']}" for r in snap.challenge_results], ""]
+    if snap.identity_results:
+        lines += ["**Identity checks done:**", *[f"- {check_line(r)}" for r in snap.identity_results], ""]
     if is_verified(snap):
         lines += ["### Receiving agent: NO re-verification needed",
                   "- Voiceprint matched, live human voice, liveness and caller-ID checks done on this call.",

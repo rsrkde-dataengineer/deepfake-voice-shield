@@ -9,3 +9,7 @@ __pycache__/
 .pytest_cache/
 .streamlit/secrets.toml
 .DS_Store
+
+# Internal project notes, never committed
+claude.md
+reference/

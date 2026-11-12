@@ -24,7 +24,7 @@ with an open-source model. The voiceprint says it's me. Shield says it's a clone
 - **"What about new deepfake generators?"** That's the arms race. The detector is one of six signals, the liveness
   challenge works regardless of how good the voice is, and confirmed fraud audio feeds retraining. The anti-spoofing
   model reports 14 % EER on the hardest public benchmark (ASVspoof5), so we're honest that it isn't perfect alone.
-- **"Is it real time?"** About 0.1 s per turn on a GPU and about 1 s on a CPU, running on audio as it arrives.
+- **"Is it real time?"** On an M1 laptop, about 0.1 s per turn on its GPU and about 1 s on the CPU, running on audio as it arrives.
 - **"What's real here?"** The voices (real people, a real clone, real TTS), both models and their outputs, and the
   evaluation. Simulated: call timing, caller-ID data and accounts. Transcripts would come from streaming ASR such as
   NVIDIA Parakeet.

@@ -46,7 +46,7 @@ channel, and *Limitations* below.
 ## Quick start (any laptop, no GPU, no ML install)
 
 ```bash
-python -m venv .venv                       # Python 3.10-3.12
+python -m venv .venv                       # tested with Python 3.12 (3.10+ should work)
 source .venv/bin/activate                  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 streamlit run app.py                       # http://localhost:8501
@@ -77,7 +77,7 @@ uv pip install --python .venv-ml/bin/python -r requirements-ml.txt
 
 - **Call co-pilot:** switch on **Run the models live** in the sidebar.
 - **Try your voice:** records and uploads now work. The first run downloads about 2.6 GB of weights.
-- **Speed:** about 0.1 s per call turn on an Apple or NVIDIA GPU, about 1 s on CPU.
+- **Speed (measured on an Apple M1 Pro):** about 0.1 s per call turn on the GPU (MPS), about 1 s on the CPU.
 - **Windows:** use WSL2, because NeMo is unreliable on native Windows.
 - **Live CLI:** `.venv-ml/bin/python -m vshield.cli --live` re-runs the models from the command line.
 

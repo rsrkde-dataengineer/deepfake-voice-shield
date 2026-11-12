@@ -4,12 +4,11 @@ jobs:
   test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.9", "3.12"]   # 3.9 = macOS built-in Python (Streamlit 1.50)
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      - run: pip install -r requirements.txt
-      - run: pytest -q          # use cases, policy, audio quality gate (live-model tests skip without ML packages)
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6        # uv still provides Python 3.9 builds
+      - run: uv venv --python ${{ matrix.python-version }} && uv pip install -r requirements.txt
+      - run: .venv/bin/python -m pytest -q    # use cases, policy, audio quality gate (live-model tests skip)

@@ -13,7 +13,10 @@ from vshield import detectors, handoff
 from vshield.audio import telephone, wav_bytes
 from vshield.session import CallSession, call_audio, list_calls, load_accounts, load_call
 
-SIGNAL_ORDER = ["synthetic_voice", "voiceprint", "behavior", "challenge", "telecom", "account"]
+SIGNAL_ORDER = ["synthetic_voice", "voiceprint", "behavior", "challenge", "identity", "telecom", "account"]
+EVENT_TAGS = {"consent_approved": (S.GOOD, "customer approved on phone"),
+              "owner_approved": (S.GOOD, "account holder approved on phone"),
+              "owner_denied": (S.CRITICAL, "account holder tapped Not me")}
 
 
 @st.cache_data
@@ -136,10 +139,13 @@ def _transcript(sess: CallSession, y: np.ndarray, sr: int, hear: bool) -> None:
             tags = ""
             if tr.challenge:
                 tags += f'<span class="vs-tag" style="color:{S.WARNING}">liveness challenge</span>'
+            if tr.question:
+                tags += f'<span class="vs-tag" style="color:{S.INFO}">identity question</span>'
             if tr.interrupts:
                 tags += '<span class="vs-tag">barge-in test</span>'
-            if tr.event == "consent_approved":
-                tags += f'<span class="vs-tag" style="color:{S.GOOD}">customer approved on phone</span>'
+            if tr.event in EVENT_TAGS:
+                color, tag = EVENT_TAGS[tr.event]
+                tags += f'<span class="vs-tag" style="color:{color}">{tag}</span>'
             who = f"Agent {sess.call['agent_name']}" if tr.speaker == "agent" else "Caller"
             latest = " vs-latest" if i == 0 else ""
             st.markdown(f'<div class="vs-bubble vs-{tr.speaker}{latest}"><div class="vs-who">{who} · {tr.start:.1f}s'
@@ -155,14 +161,14 @@ def _risk_chart(sess: CallSession) -> None:
     colors = [S.ACTION[h.action][0] for h in hist]
     fig = go.Figure()
     for lo, hi, color, name in ((0, 40, S.GOOD, "proceed"), (40, 80, S.WARNING, "step up"), (80, 100, S.CRITICAL, "escalate")):
-        fig.add_hrect(y0=lo, y1=hi, fillcolor=color, opacity=0.07, line_width=0,
-                      annotation_text=name, annotation_position="top right", annotation_font_size=11,
-                      annotation_font_color=S.MUTED)
+        fig.add_hrect(y0=lo, y1=hi, fillcolor=color, opacity=0.07, line_width=0)
+        fig.add_annotation(text=name, x=1, xref="paper", xanchor="left", xshift=6, y=(lo + hi) / 2, showarrow=False,
+                           font=dict(size=11, color=S.MUTED))   # in the margin, so markers never cover it
     fig.add_trace(go.Scatter(x=xs, y=[h.risk for h in hist], mode="lines+markers", line=dict(color=S.MUTED, width=2),
                              marker=dict(size=10, color=colors, line=dict(width=2, color="rgba(255,255,255,0.9)")),
                              customdata=[[S.ACTION[h.action][2], tx] for h, tx in zip(hist, texts)],
                              hovertemplate="%{y:.0f}% · %{customdata[0]}<br>%{customdata[1]}<extra></extra>"))
-    S.plotly_layout(fig, 230, showlegend=False)
+    S.plotly_layout(fig, 230, showlegend=False, margin=dict(l=8, r=64, t=28, b=8))
     fig.update_yaxes(range=[0, 100], title=None, ticksuffix="%")
     fig.update_layout(hovermode="closest")
     st.plotly_chart(fig, config={"displayModeBar": False})
@@ -181,17 +187,27 @@ def _decision(sess: CallSession, snap) -> None:
                 f'<div class="vs-action" style="border-color:{S.ACTION[snap.action][0]}">{S.esc(snap.action_text)}</div></div>',
                 unsafe_allow_html=True)
 
-    if sess.turns and sess.turns[-1].challenge:
+    last = sess.turns[-1] if sess.turns else None
+    if last is not None and last.challenge:
         st.markdown('<div class="vs-challenge"><b>Challenge asked</b> - waiting for the caller. '
                     'Shield is timing how long the answer takes.</div>', unsafe_allow_html=True)
+    if last is not None and last.question:
+        st.markdown('<div class="vs-challenge"><b>Identity question asked</b> - waiting for the caller. '
+                    "Shield will check the answer against the account's records.</div>", unsafe_allow_html=True)
     if snap.suggested_challenge:
         sc = snap.suggested_challenge
-        st.markdown(f'<div class="vs-challenge"><b>Suggested liveness challenge</b><br>{S.esc(sc["agent_script"])}'
-                    f'<div class="vs-why" style="margin-top:4px">{S.esc(sc["why"])}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="vs-challenge"><b>{S.esc(sc.get("title", "Suggested liveness challenge"))}</b><br>'
+                    f'{S.esc(sc["agent_script"])}<div class="vs-why" style="margin-top:4px">{S.esc(sc["why"])}</div></div>',
+                    unsafe_allow_html=True)
     for r in snap.challenge_results:
         c = S.GOOD if r["passed"] else S.CRITICAL
         st.markdown(f'<div class="vs-action" style="border-color:{c}">{"✅" if r["passed"] else "⛔"} '
                     f'<b>Challenge "{S.esc(r["phrase"])}"</b>: {S.esc(r["verdict"])}</div>', unsafe_allow_html=True)
+    for r in snap.identity_results:
+        c = S.GOOD if r["passed"] else S.CRITICAL
+        what = f'Question "{r["question"]}"' if r["type"] == "record_question" else "Phone on file"
+        st.markdown(f'<div class="vs-action" style="border-color:{c}">{"✅" if r["passed"] else "⛔"} '
+                    f'<b>{S.esc(what)}</b>: {S.esc(r["verdict"])}</div>', unsafe_allow_html=True)
 
     if snap.top_reasons:
         st.markdown("**Why**")

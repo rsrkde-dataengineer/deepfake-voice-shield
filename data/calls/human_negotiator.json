@@ -1,0 +1,182 @@
+{
+  "call_id": "human_negotiator",
+  "title": "Bill negotiator posing as the customer - Taylor Brooks",
+  "summary": "A bill-negotiation service calls as if it were the customer, to get a discount. The voice is human, so a deepfake detector alone would let it through. The voiceprint says it is not Taylor, the number has called about 37 accounts this week, and the caller cannot answer a question from the account history.",
+  "account_id": "ACC-2005",
+  "ground_truth": "human_negotiator",
+  "expected_action": "ESCALATE",
+  "agent_name": "Ryan",
+  "challenge_phrase": null,
+  "voices": {
+    "caller": "Real human voice, not the account holder: LibriSpeech test-clean speaker 1580 (CC BY 4.0)",
+    "agent": "Kokoro TTS voice am_puck"
+  },
+  "audio": {
+    "call": "audio/human_negotiator.wav",
+    "caller": "audio/human_negotiator_caller.wav"
+  },
+  "telecom": {
+    "ani": "+1-332-555-0186",
+    "stir_shaken": "A",
+    "line_type": "voip",
+    "carrier": "Business VoIP (contact-centre trunk)",
+    "calls_from_ani_24h": 41,
+    "accounts_called_from_ani_7d": 37,
+    "ivr_intent": "retention",
+    "cti_destination": "CARE_RETENTION",
+    "ivr_dtmf_timing_ms": [
+      640,
+      1210,
+      880,
+      1530
+    ]
+  },
+  "turns": [
+    {
+      "idx": 0,
+      "speaker": "agent",
+      "text": "Thank you for calling, this is Ryan. I see you'd like to talk about your bill. Am I speaking with the account holder, Taylor Brooks?",
+      "start": 0.3,
+      "end": 7.32
+    },
+    {
+      "idx": 1,
+      "speaker": "caller",
+      "text": "Yes, sir.",
+      "start": 8.02,
+      "end": 8.82,
+      "source": "LibriSpeech 1580-141083-0049 (excerpt)",
+      "audio_span": [
+        0.0,
+        0.8
+      ],
+      "scores": {
+        "synthetic_voice": 0.0538,
+        "voice_similarity": -0.0369
+      }
+    },
+    {
+      "idx": 2,
+      "speaker": "agent",
+      "text": "Thanks, Taylor. What can I do for you today?",
+      "start": 9.27,
+      "end": 11.31
+    },
+    {
+      "idx": 3,
+      "speaker": "caller",
+      "text": "Above all things, I desire to settle the matter quietly and discreetly.",
+      "start": 12.26,
+      "end": 15.82,
+      "source": "LibriSpeech 1580-141083-0013",
+      "audio_span": [
+        0.8,
+        4.36
+      ],
+      "scores": {
+        "synthetic_voice": 0.0167,
+        "voice_similarity": -0.0218
+      }
+    },
+    {
+      "idx": 4,
+      "speaker": "agent",
+      "text": "Of course. I can review your plan, but I can't promise a discount or a credit.",
+      "start": 16.27,
+      "end": 20.59
+    },
+    {
+      "idx": 5,
+      "speaker": "caller",
+      "text": "You don't seem to realize the position.",
+      "start": 21.74,
+      "end": 23.72,
+      "source": "LibriSpeech 1580-141084-0006",
+      "audio_span": [
+        4.36,
+        6.34
+      ],
+      "scores": {
+        "synthetic_voice": 0.0138,
+        "voice_similarity": -0.0161
+      }
+    },
+    {
+      "idx": 6,
+      "speaker": "agent",
+      "text": "I understand you may leave us. Before I look at offers, one quick question from your account history. Which phone did you get from us in April?",
+      "start": 24.17,
+      "end": 31.77,
+      "question": {
+        "record": "device"
+      }
+    },
+    {
+      "idx": 7,
+      "speaker": "caller",
+      "text": "Oh, I would not venture to say, sir.",
+      "start": 33.37,
+      "end": 36.56,
+      "source": "LibriSpeech 1580-141083-0052",
+      "audio_span": [
+        6.34,
+        9.53
+      ],
+      "scores": {
+        "synthetic_voice": 0.0089,
+        "voice_similarity": -0.0105
+      }
+    },
+    {
+      "idx": 8,
+      "speaker": "agent",
+      "text": "Are you calling on someone else's behalf, for example a bill negotiation service?",
+      "start": 37.01,
+      "end": 41.45
+    },
+    {
+      "idx": 9,
+      "speaker": "caller",
+      "text": "No, sir, certainly not.",
+      "start": 42.2,
+      "end": 44.86,
+      "source": "LibriSpeech 1580-141084-0027",
+      "audio_span": [
+        9.53,
+        12.19
+      ],
+      "scores": {
+        "synthetic_voice": 0.01,
+        "voice_similarity": 0.006
+      }
+    },
+    {
+      "idx": 10,
+      "speaker": "agent",
+      "text": "Thank you. As I can't verify you as the account holder, I can't change the plan or add credits on this call. Taylor can call us directly, or add an authorized contact in the app.",
+      "start": 45.31,
+      "end": 55.73
+    },
+    {
+      "idx": 11,
+      "speaker": "caller",
+      "text": "Good-bye.",
+      "start": 56.58,
+      "end": 57.1,
+      "source": "LibriSpeech 1580-141084-0010 (excerpt)",
+      "audio_span": [
+        12.19,
+        12.71
+      ],
+      "scores": {
+        "synthetic_voice": 0.01,
+        "voice_similarity": 0.0129
+      }
+    }
+  ],
+  "scored_with": {
+    "synthetic_voice": "Spectra-AASIST (lab260, rev eb65c26)",
+    "voiceprint": "NVIDIA TitaNet-Large (speakerverification_en_titanet_large)",
+    "date": "2026-11-12"
+  }
+}

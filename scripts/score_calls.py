@@ -1,6 +1,7 @@
 """Run the real models over every demo call and store their scores in the call files (run in .venv-ml).
 
-    .venv-ml/bin/python scripts/score_calls.py
+    .venv-ml/bin/python scripts/score_calls.py                       # every call
+    .venv-ml/bin/python scripts/score_calls.py human_negotiator      # or only the calls you name
 
 For each caller turn, Spectra-AASIST and NVIDIA TitaNet score all caller audio up to the end of that turn
 (exactly what the live session does), and the result is saved as turn["scores"]. The dashboard then shows
@@ -22,10 +23,10 @@ from vshield.audio import SR, load_wav  # noqa: E402
 from vshield.session import DATA, list_calls, load_accounts  # noqa: E402
 
 
-def main() -> None:
+def main(only: list[str]) -> None:
     accounts = load_accounts()
     detectors.load()
-    for cid in list_calls():
+    for cid in only or list_calls():
         path = DATA / "calls" / f"{cid}.json"
         call = json.loads(path.read_text())
         audio, _ = load_wav(str(DATA / call["audio"]["caller"]))
@@ -45,4 +46,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])

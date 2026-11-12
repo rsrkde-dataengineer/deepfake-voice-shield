@@ -26,6 +26,7 @@ from vshield.audio import SR, load_wav, telephone  # noqa: E402
 from vshield.signals.voiceprint import THRESHOLDS  # noqa: E402
 
 EVAL = ROOT / "data" / "external" / "eval"
+LIBRI = ROOT / "data" / "external" / "librispeech" / "LibriSpeech"
 CHANNELS = {"clean": lambda y: y, "telephone": telephone}
 MATCH = THRESHOLDS[1]
 
@@ -39,12 +40,28 @@ def eer(pos: np.ndarray, neg: np.ndarray) -> tuple[float, float]:
     return float((far[i] + frr[i]) / 2), float(t[i])
 
 
+def genders() -> dict[str, str]:
+    """LibriSpeech speaker id -> 'F' / 'M' (from SPEAKERS.TXT)."""
+    out = {}
+    for line in (LIBRI / "SPEAKERS.TXT").read_text().splitlines():
+        p = [x.strip() for x in line.split("|")]
+        if len(p) >= 3 and p[0].isdigit():
+            out[p[0]] = p[1]
+    return out
+
+
 def r3(xs) -> list[float]:
     return [round(float(x), 3) for x in xs]
 
 
+def impostor_summary(sims: np.ndarray) -> dict:
+    """Same-gender strangers scored against an enrolled voice: none should reach the match threshold."""
+    return {"pairs": int(len(sims)), "accepted": int(np.sum(sims >= MATCH)), "max": round(float(np.max(sims)), 3)}
+
+
 def evaluate_split(split: str) -> dict:
     rows = list(csv.DictReader(open(EVAL / split / "manifest.csv")))
+    gender = genders()
     audio = {r["path"]: load_wav(str(EVAL / split / r["path"]))[0] for r in rows}
     tests = [r for r in rows if r["role"] == "test"]
     attacks = sorted({r["attack"] for r in tests if r["label"] == "spoof"})
@@ -72,22 +89,26 @@ def evaluate_split(split: str) -> dict:
         enr = {s: detectors.voice_embedding(fn(np.concatenate([audio[r["path"]] for r in rows
                                                                 if r["role"] == "enroll" and r["speaker"] == s])))
                for s in speakers}
-        same, other, clone, fooled = [], [], [], []
+        same, other, impostor, clone, fooled = [], [], [], [], []
         for r in tests:
             if r["label"] == "bonafide":
                 e_t = detectors.voice_embedding(fn(audio[r["path"]]))
                 for s in speakers:
-                    (same if s == r["speaker"] else other).append(detectors.cosine(e_t, enr[s]))
+                    sim = detectors.cosine(e_t, enr[s])
+                    (same if s == r["speaker"] else other).append(sim)
+                    if s != r["speaker"] and gender[s] == gender[r["speaker"]]:
+                        impostor.append(sim)   # another real person of the same gender: a human impersonator
             elif r["attack"] == "chatterbox_clone":
                 sim = detectors.cosine(detectors.voice_embedding(fn(audio[r["path"]])), enr[r["target"]])
                 clone.append(sim)
                 if sim >= MATCH:
                     fooled.append(p[r["path"]] > 0.5)
-        same, other, clone = map(np.array, (same, other, clone))
+        same, other, impostor, clone = map(np.array, (same, other, impostor, clone))
         e, thr = eer(same, other)
         vp = {"eer": e, "eer_threshold": thr,
               "accept_rate": {"same_speaker": float(np.mean(same >= MATCH)), "other_speaker": float(np.mean(other >= MATCH)),
                               "clone": float(np.mean(clone >= MATCH))},
+              "impostors": impostor_summary(impostor),
               "scores": {"same_speaker": r3(same), "other_speaker": r3(other), "clone": r3(clone)}}
         out["channels"][ch] = {
             "synthetic_voice": sv, "voiceprint": vp,

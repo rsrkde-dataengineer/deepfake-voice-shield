@@ -29,7 +29,8 @@ SOCIAL_ENG = [
     "can't access", "cannot access", "different email", "send the code to", "instead", "urgent", "hurry",
     "right away", "stolen", "new sim", "today",
 ]
-AI_DISCLOSURE = ["i am an ai", "i'm an ai", "automated assistant", "virtual assistant calling", "on behalf of"]
+# Only an explicit AI disclosure: a human saying "on behalf of" is a third party, not an AI assistant.
+AI_DISCLOSURE = ["i am an ai", "i'm an ai", "an ai assistant", "automated assistant", "virtual assistant calling"]
 
 
 def _logit(p: float) -> float:

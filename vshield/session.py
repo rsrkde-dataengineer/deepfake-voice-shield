@@ -14,13 +14,14 @@ from pathlib import Path
 
 import numpy as np
 
-from . import challenge, fusion
+from . import challenge, fusion, identity
 from .audio import SR, load_wav
 from .models import RiskSnapshot, Turn
 from .signals import behavior, context, synthetic_voice, voiceprint
 
 DATA = Path(os.getenv("VSHIELD_DATA") or Path(__file__).resolve().parents[1] / "data").resolve()
-STORY = ["genuine_customer", "genuine_new_number", "voice_clone", "ai_negotiator", "ai_assistant"]
+STORY = ["genuine_customer", "genuine_new_number", "voice_clone", "human_impersonator", "ai_negotiator",
+         "human_negotiator", "ai_assistant"]
 
 
 def _require(path: Path) -> Path:
@@ -90,16 +91,25 @@ class CallSession:
         ch_sig = challenge.as_signal(results)
         if ch_sig:
             sig["challenge"] = ch_sig
+        checks = identity.evaluate(self.turns, self.account)
+        id_sig = identity.as_signal(checks)
+        if id_sig:
+            sig["identity"] = id_sig
         d = fusion.fuse(sig, high_risk_request=self.call["telecom"].get("ivr_intent") in context.HIGH_RISK_INTENTS,
                         liveness_passed=any(r["passed"] for r in results),
                         consent_approved=any(t.event == "consent_approved" for t in self.turns))
-        pending = bool(self.turns) and bool(self.turns[-1].challenge)   # asked, not yet answered
+        last = self.turns[-1] if self.turns else None
+        pending = last is not None and bool(last.challenge or last.question)   # asked, not yet answered
         suggested = None
-        if d.action in ("STEP_UP", "ESCALATE") and not results and not pending:
-            suggested = challenge.suggest(self.call, sum(1 for t in self.turns if t.challenge))
+        if d.action in ("STEP_UP", "ESCALATE") and not pending:
+            if d.pattern == "other_voice":     # a human who is not the enrolled voice: liveness proves nothing here
+                if not checks:
+                    suggested = identity.suggest(self.account, {t.question["record"] for t in self.turns if t.question})
+            elif not results:
+                suggested = challenge.suggest(self.call, sum(1 for t in self.turns if t.challenge))
         snap = RiskSnapshot(turn_idx=len(self.turns) - 1, risk=d.risk, verdict=d.verdict, action=d.action,
                             action_text=d.action_text, signals=sig, top_reasons=d.reasons,
-                            suggested_challenge=suggested, challenge_results=results)
+                            suggested_challenge=suggested, challenge_results=results, identity_results=checks)
         self.history.append(snap)
         return snap
 

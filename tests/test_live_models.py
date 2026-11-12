@@ -7,7 +7,7 @@ from vshield.session import CallSession, load_accounts, load_call
 pytestmark = pytest.mark.skipif(not detectors.available(), reason="ML packages not installed (requirements-ml.txt)")
 
 
-@pytest.mark.parametrize("cid", ["genuine_customer", "voice_clone"])
+@pytest.mark.parametrize("cid", ["genuine_customer", "voice_clone", "human_impersonator"])
 def test_live_scores_match_the_stored_ones(cid):
     call = load_call(cid)
     sess = CallSession(call, load_accounts(), live=True)

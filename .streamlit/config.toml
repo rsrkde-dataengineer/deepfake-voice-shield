@@ -1,2 +1,5 @@
 [theme]
 primaryColor = "#cd040b"
+
+[browser]
+gatherUsageStats = false     # no telemetry: nothing leaves the machine

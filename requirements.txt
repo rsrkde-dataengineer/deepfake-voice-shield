@@ -1,7 +1,8 @@
-# Dashboard, CLI and tests (no ML packages needed: the calls carry the models' stored scores).
-# Python 3.10-3.12. Live models: requirements-ml.txt. Rebuilding the voices: requirements-gen.txt.
+# Dashboard, CLI and tests. No ML or Hugging Face packages: the calls carry the models' stored scores.
+# Tested with Python 3.9 (macOS built-in, Streamlit 1.50) and Python 3.12 (Streamlit 1.66).
+# Live models: requirements-ml.txt. Rebuilding the voices: requirements-gen.txt.
 numpy>=1.26
 scipy>=1.11
-streamlit>=1.60,<2
+streamlit>=1.50,<2
 plotly>=5.20
 pytest>=8.0

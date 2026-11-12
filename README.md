@@ -46,7 +46,7 @@ channel, and *Limitations* below.
 ## Quick start (any laptop, no GPU, no ML install)
 
 ```bash
-python -m venv .venv                       # tested with Python 3.12 (3.10+ should work)
+python3 -m venv .venv                      # tested with Python 3.9 (macOS built-in) and 3.12
 source .venv/bin/activate                  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 streamlit run app.py                       # http://localhost:8501
@@ -65,6 +65,20 @@ file, so it shows real model output without downloading the models.
 
 Also: `python -m vshield.cli` (all calls in the terminal), `python -m vshield.cli voice_clone` (turn by turn plus the
 generated documents) and `pytest` (tests for every use case, plus an audio quality gate).
+
+### On a locked-down or office network
+
+The dashboard never contacts Hugging Face, NVIDIA or any other model host. It installs only the five packages in
+`requirements.txt` (from PyPI or your company's mirror), and usage telemetry is switched off in
+`.streamlit/config.toml`, so it runs fully offline.
+
+| Without the ML packages (e.g. Hugging Face blocked) | Needs `requirements-ml.txt` + access to Hugging Face / NVIDIA |
+|---|---|
+| All five calls, with real model scores, audio, decisions and generated documents | The **Run the models live** switch (re-computing the scores) |
+| Try your voice on the five demo clips | Recording or uploading your own audio on Try your voice |
+| Model evaluation, Business impact, How it works, CLI, tests | Rebuilding the data or the evaluation |
+
+After `git pull`, run `pip install -r requirements.txt` again: it upgrades Streamlit if your copy is older than 1.50.
 
 ## Run the real models live (optional)
 

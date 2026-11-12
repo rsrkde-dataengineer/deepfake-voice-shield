@@ -165,7 +165,7 @@ def _risk_chart(sess: CallSession) -> None:
     S.plotly_layout(fig, 230, showlegend=False)
     fig.update_yaxes(range=[0, 100], title=None, ticksuffix="%")
     fig.update_layout(hovermode="closest")
-    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+    st.plotly_chart(fig, config={"displayModeBar": False})
 
 
 def _decision(sess: CallSession, snap) -> None:

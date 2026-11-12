@@ -36,9 +36,10 @@ def render() -> None:
         return
     rep = json.loads(REPORT.read_text())
     c1, c2 = st.columns(2)
+    first = next(s for s in SPLITS if s in rep["splits"])
     split = c1.segmented_control("Data", [s for s in SPLITS if s in rep["splits"]], format_func=SPLITS.get,
-                                 default=next(s for s in SPLITS if s in rep["splits"]), required=True)
-    ch = c2.segmented_control("Channel", list(CHANNELS), format_func=CHANNELS.get, default="telephone", required=True)
+                                 default=first) or first           # clicking the selected option clears it
+    ch = c2.segmented_control("Channel", list(CHANNELS), format_func=CHANNELS.get, default="telephone") or "telephone"
     res = rep["splits"][split]
     m = res["channels"][ch]
     sv, vp = m["synthetic_voice"], m["voiceprint"]
@@ -76,7 +77,7 @@ def render() -> None:
         S.plotly_layout(fig, 340, hovermode="closest", margin=dict(l=8, r=8, t=40, b=8))
         fig.update_xaxes(title="cosine similarity to the enrolled voice")
         fig.update_yaxes(title="share of trials", tickformat=".0%")
-        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+        st.plotly_chart(fig, config={"displayModeBar": False})
         st.caption("Real speakers separate cleanly, but voice clones land among the genuine matches. "
                    "A voiceprint alone cannot stop them.")
     with right:
@@ -93,7 +94,7 @@ def render() -> None:
         S.plotly_layout(fig, 340, hovermode="closest", margin=dict(l=8, r=8, t=40, b=8))
         fig.update_xaxes(title="synthetic-speech probability")
         fig.update_yaxes(title="share of clips", tickformat=".0%")
-        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
+        st.plotly_chart(fig, config={"displayModeBar": False})
         st.caption("The anti-spoofing model puts the clones and TTS voices on the other side of the threshold - "
                    "including the clones that fooled the voiceprint.")
 

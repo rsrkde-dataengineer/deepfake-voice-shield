@@ -56,7 +56,7 @@ def render() -> None:
     with c1:
         st.markdown("##### 1 · The caller's voice")
         sources = ["Demo clip", "Record", "Upload"] if live else ["Demo clip"]
-        source = st.segmented_control("Source", sources, default="Demo clip", label_visibility="collapsed")
+        source = st.segmented_control("Source", sources, default="Demo clip", label_visibility="collapsed") or "Demo clip"
         audio, claimed, stored, truth = None, None, None, None
         if source == "Demo clip":
             key = st.selectbox("Clip", list(clips), format_func=lambda k: clips[k]["label"])

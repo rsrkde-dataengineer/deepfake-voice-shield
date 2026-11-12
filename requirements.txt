@@ -1,8 +1,7 @@
+# Dashboard, CLI and tests (no ML packages needed: the calls carry the models' stored scores).
+# Python 3.10-3.12. Live models: requirements-ml.txt. Rebuilding the voices: requirements-gen.txt.
 numpy>=1.26
 scipy>=1.11
-streamlit>=1.40
+streamlit>=1.60,<2
 plotly>=5.20
 pytest>=8.0
-# Optional production backends (see README):
-# nemo_toolkit[asr]   # NVIDIA TitaNet voiceprint  -> VSHIELD_VOICEPRINT=titanet
-# transformers torch  # HF anti-spoofing model     -> VSHIELD_SPOOF_MODEL=hf:<model_id>

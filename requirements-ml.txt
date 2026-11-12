@@ -1,7 +1,7 @@
-# Real model backends (separate venv; the demo only needs requirements.txt):
+# The two models, run live: NVIDIA TitaNet (NeMo) and Spectra-AASIST (transformers). Separate venv:
 #   uv venv --python 3.12 .venv-ml && uv pip install --python .venv-ml/bin/python -r requirements-ml.txt
-#   VSHIELD_VOICEPRINT=titanet VSHIELD_SPOOF_MODEL=spectra streamlit run app.py
-# Versions are the ones verified on macOS / Apple M1 Pro (MPS).
+#   .venv-ml/bin/streamlit run app.py      (then "Run the models live" / "Try your voice")
+# Versions verified on macOS (Apple M1 Pro, MPS). The first run downloads ~2.6 GB of weights.
 -r requirements.txt
 torch==2.15.0
 transformers==5.22.1

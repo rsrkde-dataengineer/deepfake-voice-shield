@@ -15,6 +15,24 @@
       "last_bill": 142.18
     },
     "active_tickets": [],
+    "records": [
+      {
+        "id": "device",
+        "question": "Which phone did you get from us last June?",
+        "answer": "Pixel 9",
+        "accept": [
+          "pixel"
+        ]
+      },
+      {
+        "id": "travel",
+        "question": "Where did you last use TravelPass?",
+        "answer": "Toronto, in October",
+        "accept": [
+          "toronto"
+        ]
+      }
+    ],
     "voiceprint": "enrollment/ACC-1001.wav",
     "voiceprint_source": "LibriSpeech dev-clean speaker 3081 (real voice, CC BY 4.0), utterances 3081-166546-0030, 3081-166546-0089"
   },
@@ -33,6 +51,25 @@
       "last_bill": 96.4
     },
     "active_tickets": [],
+    "records": [
+      {
+        "id": "device",
+        "question": "Which phone did you get from us in May?",
+        "answer": "iPhone 16 Pro",
+        "accept": [
+          "iphone"
+        ]
+      },
+      {
+        "id": "store",
+        "question": "Which of our stores did you visit last?",
+        "answer": "Boylston Street, Boston",
+        "accept": [
+          "boylston",
+          "boston"
+        ]
+      }
+    ],
     "voiceprint": "enrollment/ACC-1002.wav",
     "voiceprint_source": "LibriSpeech dev-clean speaker 2428 (real voice, CC BY 4.0), utterances 2428-83699-0018, 2428-83699-0000"
   },
@@ -56,6 +93,17 @@
       "last_bill": 78.4
     },
     "active_tickets": [],
+    "records": [
+      {
+        "id": "device",
+        "question": "Which phone did you get from us in February?",
+        "answer": "Galaxy S24",
+        "accept": [
+          "galaxy",
+          "samsung"
+        ]
+      }
+    ],
     "voiceprint": "enrollment/ACC-1003.wav",
     "voiceprint_source": "LibriSpeech dev-clean speaker 1919 (real voice, CC BY 4.0), utterances 1919-142785-0011, 1919-142785-0036"
   },
@@ -76,6 +124,16 @@
     "active_tickets": [
       "TCK-88412 billing dispute (closed, credit $40)"
     ],
+    "records": [
+      {
+        "id": "device",
+        "question": "Which tablet did you add to your plan in March?",
+        "answer": "iPad Air",
+        "accept": [
+          "ipad"
+        ]
+      }
+    ],
     "voiceprint": "enrollment/ACC-2002.wav",
     "voiceprint_source": "LibriSpeech dev-clean speaker 652 (real voice, CC BY 4.0), utterances 652-129742-0009, 652-130726-0002"
   },
@@ -94,7 +152,95 @@
       "last_bill": 84.0
     },
     "active_tickets": [],
+    "records": [
+      {
+        "id": "device",
+        "question": "Which phone did you get from us in January?",
+        "answer": "Pixel 8a",
+        "accept": [
+          "pixel"
+        ]
+      }
+    ],
     "voiceprint": "enrollment/ACC-3004.wav",
     "voiceprint_source": "LibriSpeech dev-clean speaker 6313 (real voice, CC BY 4.0), utterances 6313-66125-0027, 6313-66129-0021"
+  },
+  "ACC-2005": {
+    "name": "Taylor Brooks",
+    "tenure_years": 6,
+    "plan": "Unlimited Plus (3 lines)",
+    "anis_on_file": [
+      "+1-503-555-0129"
+    ],
+    "risk_flags": [],
+    "security_events_7d": [],
+    "billing_history": {
+      "credits_90d": 0,
+      "retention_offers_12m": 0,
+      "last_bill": 164.32
+    },
+    "active_tickets": [],
+    "records": [
+      {
+        "id": "device",
+        "question": "Which phone did you get from us in April?",
+        "answer": "Galaxy S25",
+        "accept": [
+          "galaxy",
+          "samsung"
+        ]
+      },
+      {
+        "id": "travel",
+        "question": "Where did you last use TravelPass?",
+        "answer": "Cancun, in August",
+        "accept": [
+          "cancun",
+          "mexico"
+        ]
+      }
+    ],
+    "voiceprint": "enrollment/ACC-2005.wav",
+    "voiceprint_source": "LibriSpeech test-clean speaker 4970 (real voice, CC BY 4.0), utterances 4970-29095-0007, 4970-29095-0028"
+  },
+  "ACC-1006": {
+    "name": "Marcus Webb",
+    "tenure_years": 11,
+    "plan": "Unlimited Ultimate (2 lines)",
+    "anis_on_file": [
+      "+1-708-555-0153"
+    ],
+    "risk_flags": [],
+    "security_events_7d": [
+      "online password reset from a new device",
+      "port-out PIN requested online, not completed"
+    ],
+    "billing_history": {
+      "credits_90d": 0,
+      "retention_offers_12m": 0,
+      "last_bill": 118.9
+    },
+    "active_tickets": [],
+    "records": [
+      {
+        "id": "device",
+        "question": "Which phone did you get from us in August?",
+        "answer": "iPhone 16",
+        "accept": [
+          "iphone"
+        ]
+      },
+      {
+        "id": "store",
+        "question": "Which of our stores did you visit last month?",
+        "answer": "Oak Brook",
+        "accept": [
+          "oak brook",
+          "oakbrook"
+        ]
+      }
+    ],
+    "voiceprint": "enrollment/ACC-1006.wav",
+    "voiceprint_source": "LibriSpeech dev-clean speaker 7976 (real voice, CC BY 4.0), utterances 7976-110523-0017, 7976-105575-0029"
   }
 }

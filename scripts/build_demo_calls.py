@@ -1,14 +1,18 @@
-"""Build the five demo calls in data/ from real and generated speech (run in .venv-gen).
+"""Build the seven demo calls in data/ from real and generated speech (run in .venv-gen).
 
-    .venv-gen/bin/python scripts/get_librispeech.py        # once: public speech, ~340 MB
-    .venv-gen/bin/python scripts/build_demo_calls.py       # ~5 min on an M1 (voice cloning dominates)
-    .venv-ml/bin/python  scripts/score_calls.py            # then add the real model scores
+    .venv-gen/bin/python scripts/get_librispeech.py                  # once: public speech, ~680 MB
+    .venv-gen/bin/python scripts/build_demo_calls.py                 # ~5 min on an M1 (voice cloning dominates)
+    .venv-gen/bin/python scripts/build_demo_calls.py human_negotiator   # or only the calls you name
+    .venv-ml/bin/python  scripts/score_calls.py [call ...]           # then add the real model scores
 
 Caller voices
-  human  LibriSpeech dev-clean (CC BY 4.0): real people. The transcript is exactly what they said;
-         the agent's lines are written around their words.
-  clone  Chatterbox zero-shot clone of the account holder (MIT; output carries Resemble's watermark).
-  tts    Kokoro-82M stock voices (Apache-2.0): the AI bot and the AI assistant.
+  human        LibriSpeech dev-clean / test-clean (CC BY 4.0): real people. The transcript is exactly what they
+               said; the agent's lines are written around their words.
+  human:<spk>  the same, for a person who is NOT the account holder (an impersonator, a bill negotiator). A line
+               may be a run of words from a longer recording: forced alignment finds the words and the cut is made
+               in the pause around them, so no word is clipped.
+  clone        Chatterbox zero-shot clone of the account holder (MIT; output carries Resemble's watermark).
+  tts          Kokoro-82M stock voices (Apache-2.0): the AI bot and the AI assistant.
 The agents are Kokoro stock voices too. No real customer data is used anywhere.
 
 Writes data/accounts.json, data/enrollment/<account>.wav, data/calls/<call>.json,
@@ -20,6 +24,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
@@ -30,17 +35,20 @@ sys.path.insert(0, str(ROOT))
 
 from vshield.audio import PLAYBACK_SR, SR, resample, save_wav  # noqa: E402
 
-LIBRI = ROOT / "data" / "external" / "librispeech" / "LibriSpeech" / "dev-clean"
+LIBRI = ROOT / "data" / "external" / "librispeech" / "LibriSpeech"
+SPLITS = ("dev-clean", "test-clean")
 OUT = ROOT / "data"
 
 
-def agent(text, interrupt_at=None, reaction=None, challenge=None, event=None):
+def agent(text, interrupt_at=None, reaction=None, challenge=None, question=None, event=None):
+    """An agent line. question={"record": id} asks an account-history question; event = the customer's tap on
+    their phone (consent_approved, owner_denied)."""
     return {"speaker": "agent", "text": text, "interrupt_at": interrupt_at, "reaction": reaction,
-            "challenge": challenge, "event": event}
+            "challenge": challenge, "question": question, "event": event}
 
 
 def human(uid, text, latency):
-    """A real LibriSpeech utterance; `text` is its transcript with punctuation added."""
+    """A real LibriSpeech utterance, or a run of its words; `text` is exactly those words with punctuation added."""
     return {"speaker": "caller", "uid": uid, "text": text, "latency": latency}
 
 
@@ -49,28 +57,59 @@ def synthetic(text, latency):
     return {"speaker": "caller", "uid": None, "text": text, "latency": latency}
 
 
+def record(rid, question, answer, *accept):
+    """Account history the agent can ask about. Only things that are not printed on the bill."""
+    return {"id": rid, "question": question, "answer": answer, "accept": list(accept)}
+
+
 ACCOUNTS = {
     "ACC-1001": {"name": "Jordan Ellis", "speaker": "3081", "tenure_years": 7, "plan": "Unlimited Plus (2 lines)",
                  "anis_on_file": ["+1-201-555-0142", "+1-201-555-0177"], "risk_flags": [], "security_events_7d": [],
                  "billing_history": {"credits_90d": 0, "retention_offers_12m": 0, "last_bill": 142.18},
-                 "active_tickets": []},
+                 "active_tickets": [],
+                 "records": [record("device", "Which phone did you get from us last June?", "Pixel 9", "pixel"),
+                             record("travel", "Where did you last use TravelPass?", "Toronto, in October", "toronto")]},
     "ACC-1002": {"name": "Christopher Hale", "speaker": "2428", "tenure_years": 9, "plan": "Unlimited Ultimate (1 line)",
                  "anis_on_file": ["+1-617-555-0108"], "risk_flags": [], "security_events_7d": [],
                  "billing_history": {"credits_90d": 0, "retention_offers_12m": 0, "last_bill": 96.40},
-                 "active_tickets": []},
+                 "active_tickets": [],
+                 "records": [record("device", "Which phone did you get from us in May?", "iPhone 16 Pro", "iphone"),
+                             record("store", "Which of our stores did you visit last?", "Boylston Street, Boston",
+                                    "boylston", "boston")]},
     "ACC-1003": {"name": "Alex Chen", "speaker": "1919", "tenure_years": 4, "plan": "Unlimited Welcome (1 line)",
                  "anis_on_file": ["+1-646-555-0119"], "risk_flags": ["credentials_seen_in_breach_dump"],
                  "security_events_7d": ["2 failed online logins (new device)", "password reset email bounced"],
                  "billing_history": {"credits_90d": 0, "retention_offers_12m": 0, "last_bill": 78.40},
-                 "active_tickets": []},
+                 "active_tickets": [],
+                 "records": [record("device", "Which phone did you get from us in February?", "Galaxy S24",
+                                    "galaxy", "samsung")]},
     "ACC-2002": {"name": "Sam Rivera", "speaker": "652", "tenure_years": 6, "plan": "Unlimited Ultimate (3 lines)",
                  "anis_on_file": ["+1-312-555-0164"], "risk_flags": [], "security_events_7d": [],
                  "billing_history": {"credits_90d": 3, "retention_offers_12m": 2, "last_bill": 231.55},
-                 "active_tickets": ["TCK-88412 billing dispute (closed, credit $40)"]},
+                 "active_tickets": ["TCK-88412 billing dispute (closed, credit $40)"],
+                 "records": [record("device", "Which tablet did you add to your plan in March?", "iPad Air", "ipad")]},
     "ACC-3004": {"name": "Morgan Lee", "speaker": "6313", "tenure_years": 3, "plan": "Unlimited Welcome (2 lines)",
                  "anis_on_file": ["+1-415-555-0137"], "risk_flags": [], "security_events_7d": [],
                  "billing_history": {"credits_90d": 0, "retention_offers_12m": 0, "last_bill": 84.00},
-                 "active_tickets": []},
+                 "active_tickets": [],
+                 "records": [record("device", "Which phone did you get from us in January?", "Pixel 8a", "pixel")]},
+    "ACC-2005": {"name": "Taylor Brooks", "speaker": "4970", "tenure_years": 6, "plan": "Unlimited Plus (3 lines)",
+                 "anis_on_file": ["+1-503-555-0129"], "risk_flags": [], "security_events_7d": [],
+                 "billing_history": {"credits_90d": 0, "retention_offers_12m": 0, "last_bill": 164.32},
+                 "active_tickets": [],
+                 "records": [record("device", "Which phone did you get from us in April?", "Galaxy S25",
+                                    "galaxy", "samsung"),
+                             record("travel", "Where did you last use TravelPass?", "Cancun, in August", "cancun",
+                                    "mexico")]},
+    "ACC-1006": {"name": "Marcus Webb", "speaker": "7976", "tenure_years": 11, "plan": "Unlimited Ultimate (2 lines)",
+                 "anis_on_file": ["+1-708-555-0153"], "risk_flags": [],
+                 "security_events_7d": ["online password reset from a new device",
+                                        "port-out PIN requested online, not completed"],
+                 "billing_history": {"credits_90d": 0, "retention_offers_12m": 0, "last_bill": 118.90},
+                 "active_tickets": [],
+                 "records": [record("device", "Which phone did you get from us in August?", "iPhone 16", "iphone"),
+                             record("store", "Which of our stores did you visit last month?", "Oak Brook",
+                                    "oak brook", "oakbrook")]},
 }
 
 CALLS = {
@@ -199,18 +238,79 @@ CALLS = {
             synthetic("Thank you, that's everything Morgan needed. Goodbye.", 0.80),
         ],
     },
+    "human_impersonator": {
+        "title": "Human impersonator - port-out attempt on Marcus Webb",
+        "summary": "A fraudster with stolen account details calls in their own voice to move the number to another "
+                   "carrier. The anti-spoofing model rightly hears a real human, but the voiceprint says it is not the "
+                   "account holder. Shield switches to a question from the account history, the caller cannot answer, "
+                   "and the real customer taps 'Not me' on the phone on file.",
+        "account_id": "ACC-1006", "ground_truth": "human_impersonator", "expected_action": "ESCALATE",
+        "agent": ("Oliver", "bm_fable"), "caller_voice": "human:3752",
+        "telecom": {"ani": "+1-929-555-0173", "stir_shaken": "B", "line_type": "mobile", "carrier": "Prepaid MVNO",
+                    "calls_from_ani_24h": 2, "accounts_called_from_ani_7d": 1, "ivr_intent": "port_out",
+                    "cti_destination": "CARE_PORT_OUT", "ivr_dtmf_timing_ms": [980, 640, 1420, 870]},
+        "script": [
+            agent("Thank you for calling, this is Oliver. Am I speaking with the account holder, Marcus Webb?"),
+            human("3752-4944-0034", "Yes, yes.", 0.55),
+            agent("Thanks. I see you'd like a PIN to move your number to another carrier. May I ask why you're leaving us?"),
+            human("3752-4944-0046", "I've given my orders, sir.", 1.05),
+            agent("Understood. Moving a number is a high risk change, so first, one quick question from your account "
+                  "history. Which phone did you get from us in August?", question={"record": "device"}),
+            human("3752-4944-0045", "Then don't you interfere with me, sir.", 1.45),
+            agent("I'm sorry, I can't issue a port-out PIN without verification. I've sent a confirmation request "
+                  "to the phone on the account. Please approve it there."),
+            human("3752-4944-0054", "I'll show you who's master here, my good sir.", 0.8),
+            agent("The account holder has just tapped Not me on that phone. I can't make any changes on this call, "
+                  "and this request is now closed.", event="owner_denied"),
+            human("3752-4944-0058", "I'll report this to the government.", 0.9),
+        ],
+    },
+    "human_negotiator": {
+        "title": "Bill negotiator posing as the customer - Taylor Brooks",
+        "summary": "A bill-negotiation service calls as if it were the customer, to get a discount. The voice is human, "
+                   "so a deepfake detector alone would let it through. The voiceprint says it is not Taylor, the number "
+                   "has called about 37 accounts this week, and the caller cannot answer a question from the account "
+                   "history.",
+        "account_id": "ACC-2005", "ground_truth": "human_negotiator", "expected_action": "ESCALATE",
+        "agent": ("Ryan", "am_puck"), "caller_voice": "human:1580",
+        "telecom": {"ani": "+1-332-555-0186", "stir_shaken": "A", "line_type": "voip",
+                    "carrier": "Business VoIP (contact-centre trunk)", "calls_from_ani_24h": 41,
+                    "accounts_called_from_ani_7d": 37, "ivr_intent": "retention", "cti_destination": "CARE_RETENTION",
+                    "ivr_dtmf_timing_ms": [640, 1210, 880, 1530]},
+        "script": [
+            agent("Thank you for calling, this is Ryan. I see you'd like to talk about your bill. "
+                  "Am I speaking with the account holder, Taylor Brooks?"),
+            human("1580-141083-0049", "Yes, sir.", 0.7),
+            agent("Thanks, Taylor. What can I do for you today?"),
+            human("1580-141083-0013", "Above all things, I desire to settle the matter quietly and discreetly.", 0.95),
+            agent("Of course. I can review your plan, but I can't promise a discount or a credit."),
+            human("1580-141084-0006", "You don't seem to realize the position.", 1.15),
+            agent("I understand you may leave us. Before I look at offers, one quick question from your account "
+                  "history. Which phone did you get from us in April?", question={"record": "device"}),
+            human("1580-141083-0052", "Oh, I would not venture to say, sir.", 1.6),
+            agent("Are you calling on someone else's behalf, for example a bill negotiation service?"),
+            human("1580-141084-0027", "No, sir, certainly not.", 0.75),
+            agent("Thank you. As I can't verify you as the account holder, I can't change the plan or add credits on "
+                  "this call. Taylor can call us directly, or add an authorized contact in the app."),
+            human("1580-141084-0010", "Good-bye.", 0.85),
+        ],
+    },
 }
 
 
 # ---------------------------------------------------------------------------------------------------------------
+def split_of(speaker: str) -> str:
+    return next(s for s in SPLITS if (LIBRI / s / speaker).is_dir())
+
+
 def libri_path(uid: str) -> Path:
     spk, chap, _ = uid.split("-")
-    return LIBRI / spk / chap / f"{uid}.flac"
+    return LIBRI / split_of(spk) / spk / chap / f"{uid}.flac"
 
 
 def libri_text(uid: str) -> str:
     spk, chap, _ = uid.split("-")
-    for line in (LIBRI / spk / chap / f"{spk}-{chap}.trans.txt").read_text().splitlines():
+    for line in (libri_path(uid).parent / f"{spk}-{chap}.trans.txt").read_text().splitlines():
         if line.startswith(uid + " "):
             return line.split(" ", 1)[1]
     raise KeyError(uid)
@@ -218,6 +318,52 @@ def libri_text(uid: str) -> str:
 
 def words(text: str) -> list[str]:
     return re.sub(r"[^a-z' ]", " ", text.lower()).split()
+
+
+@lru_cache(maxsize=1)
+def _aligner():
+    import torchaudio
+    bundle = torchaudio.pipelines.WAV2VEC2_ASR_BASE_960H
+    return bundle, bundle.get_model().eval()
+
+
+def word_times(uid: str) -> list[tuple[float, float]]:
+    """(start, end) of every word in a LibriSpeech utterance: CTC forced alignment with torchaudio's wav2vec2
+    model trained on LibriSpeech (downloads ~360 MB once)."""
+    import torch
+    import torchaudio
+    bundle, model = _aligner()
+    labels = bundle.get_labels()
+    y, sr = sf.read(str(libri_path(uid)), dtype="float32")
+    assert sr == bundle.sample_rate
+    with torch.inference_mode():
+        emission = torch.log_softmax(model(torch.from_numpy(y)[None])[0], -1)
+    tokens = torch.tensor([[labels.index(c) for c in "|".join(libri_text(uid).split())]])
+    path, scores = torchaudio.functional.forced_align(emission, tokens, blank=0)
+    sec = len(y) / sr / emission.shape[1]
+    spans, word = [], []
+    for s in torchaudio.functional.merge_tokens(path[0], scores[0].exp()):
+        if labels[s.token] == "|":
+            spans.append(word)
+            word = []
+        else:
+            word.append(s)
+    spans.append(word)
+    return [(w[0].start * sec, w[-1].end * sec) for w in spans]
+
+
+def excerpt(uid: str, text: str) -> tuple[float, float | None] | None:
+    """None when `text` is the whole utterance; else where its words start and end (seconds; None = to the end),
+    cut in the middle of the pauses around them so no word is clipped."""
+    full, part = words(libri_text(uid)), words(text)
+    if part == full:
+        return None
+    at = [k for k in range(len(full) - len(part) + 1) if full[k: k + len(part)] == part]
+    assert at, f"transcript mismatch {uid}: {text!r}"
+    i, j, t = at[0], at[0] + len(part), word_times(uid)
+    gaps = ([t[i][0] - t[i - 1][1]] if i > 0 else []) + ([t[j][0] - t[j - 1][1]] if j < len(full) else [])
+    assert min(gaps) >= 0.25, f"{uid}: '{text}' is not set off by pauses, so it cannot be cut cleanly"
+    return ((t[i - 1][1] + t[i][0]) / 2 if i > 0 else 0.0), ((t[j - 1][1] + t[j][0]) / 2 if j < len(full) else None)
 
 
 def tidy(y: np.ndarray, sr: int, level_db: float = -20.0) -> np.ndarray:
@@ -242,13 +388,15 @@ def fade_cut(y: np.ndarray, n: int, sr: int) -> np.ndarray:
     return y
 
 
-def main() -> None:
+def main(only: list[str]) -> None:
     import torch
     from chatterbox.tts import ChatterboxTTS
     from kokoro import KPipeline
 
-    if not LIBRI.exists():
-        sys.exit("LibriSpeech dev-clean not found - run scripts/get_librispeech.py first")
+    if not all((LIBRI / s).exists() for s in SPLITS):
+        sys.exit("LibriSpeech dev-clean / test-clean not found - run scripts/get_librispeech.py first")
+    if set(only) - set(CALLS):
+        sys.exit(f"Unknown call(s): {', '.join(sorted(set(only) - set(CALLS)))}. Calls: {', '.join(CALLS)}")
     dev = "mps" if torch.backends.mps.is_available() else "cuda" if torch.cuda.is_available() else "cpu"
     for sub in ("audio", "calls", "enrollment"):
         (OUT / sub).mkdir(parents=True, exist_ok=True)
@@ -267,8 +415,10 @@ def main() -> None:
         y = cloner.generate(text, audio_prompt_path=str(ref)).squeeze(0).cpu().numpy()
         return tidy(resample(y, cloner.sr, PLAYBACK_SR), PLAYBACK_SR)
 
-    def real(uid: str) -> np.ndarray:                          # -> PLAYBACK_SR
+    def real(uid: str, span=None) -> np.ndarray:               # -> PLAYBACK_SR
         y, sr = sf.read(str(libri_path(uid)), dtype="float32")
+        if span:                                               # a run of words, cut in the pauses around it
+            y = y[int(span[0] * sr): int(span[1] * sr) if span[1] else None]
         return tidy(resample(y, sr, PLAYBACK_SR), PLAYBACK_SR)
 
     # enrollment: the account holder's real voice, from utterances that never appear in a call
@@ -277,7 +427,7 @@ def main() -> None:
     accounts = {}
     for acc_id, acc in ACCOUNTS.items():
         spk = acc["speaker"]
-        utts = sorted((sf.info(str(p)).duration, p.stem) for p in (LIBRI / spk).glob("*/*.flac")
+        utts = sorted((sf.info(str(p)).duration, p.stem) for p in (LIBRI / split_of(spk) / spk).glob("*/*.flac")
                       if p.stem not in used and sf.info(str(p)).duration <= 15)
         longest = [uid for _, uid in utts[::-1]]
         enroll, clone_refs[acc_id] = longest[:2], longest[2]
@@ -286,10 +436,13 @@ def main() -> None:
         save_wav(str(OUT / "enrollment" / f"{acc_id}.wav"), y, SR)
         accounts[acc_id] = {k: v for k, v in acc.items() if k != "speaker"} | {
             "voiceprint": f"enrollment/{acc_id}.wav",
-            "voiceprint_source": f"LibriSpeech dev-clean speaker {spk} (real voice, CC BY 4.0), utterances {', '.join(enroll)}"}
+            "voiceprint_source": f"LibriSpeech {split_of(spk)} speaker {spk} (real voice, CC BY 4.0), "
+                                 f"utterances {', '.join(enroll)}"}
     (OUT / "accounts.json").write_text(json.dumps(accounts, indent=2) + "\n")
 
     for ci, (cid, spec) in enumerate(CALLS.items()):
+        if only and cid not in only:
+            continue
         acc = ACCOUNTS[spec["account_id"]]
         agent_name, agent_voice = spec["agent"]
         voice = spec["caller_voice"]
@@ -322,6 +475,8 @@ def main() -> None:
                     turn["interrupts"] = True
                 if step["challenge"]:
                     turn["challenge"] = step["challenge"]
+                if step["question"]:
+                    turn["question"] = step["question"]
                 if step["event"]:
                     turn["event"] = step["event"]
                 a = int(start * PLAYBACK_SR)
@@ -330,8 +485,8 @@ def main() -> None:
                 t = max(turn["end"], turns[-2]["end"] if len(turns) > 1 else 0)
             else:
                 if step["uid"]:
-                    assert words(step["text"]) == words(libri_text(step["uid"])), f"transcript mismatch {step['uid']}"
-                    y, source = real(step["uid"]), f"LibriSpeech {step['uid']}"
+                    span = excerpt(step["uid"], step["text"])        # asserts the words are what was said
+                    y, source = real(step["uid"], span), f"LibriSpeech {step['uid']}" + (" (excerpt)" if span else "")
                 elif voice == "clone":
                     y, source = clone(step["text"], libri_path(clone_refs[spec["account_id"]]), 1000 * ci + i), "Chatterbox clone"
                 else:
@@ -353,8 +508,12 @@ def main() -> None:
         mix = mix[: int(end * PLAYBACK_SR)]
         save_wav(str(OUT / "audio" / f"{cid}.wav"), mix / max(1.0, np.abs(mix).max() / 0.95), PLAYBACK_SR)
         save_wav(str(OUT / "audio" / f"{cid}_caller.wav"), np.concatenate(caller_clips), SR)
-        voices = {"human": f"Real human voice: LibriSpeech dev-clean speaker {acc['speaker']} (CC BY 4.0)",
+        voices = {"human": f"Real human voice: LibriSpeech {split_of(acc['speaker'])} speaker {acc['speaker']} (CC BY 4.0)",
                   "clone": f"Chatterbox voice clone of the account holder (built from LibriSpeech speaker {acc['speaker']})"}
+        if voice.startswith("human:"):
+            spk = voice.split(":")[1]
+            voices[voice] = (f"Real human voice, not the account holder: LibriSpeech {split_of(spk)} speaker {spk} "
+                             "(CC BY 4.0)")
         call = {"call_id": cid, "title": spec["title"], "summary": spec["summary"], "account_id": spec["account_id"],
                 "ground_truth": spec["ground_truth"], "expected_action": spec["expected_action"],
                 "agent_name": agent_name, "challenge_phrase": spec.get("challenge_phrase"),
@@ -368,4 +527,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])

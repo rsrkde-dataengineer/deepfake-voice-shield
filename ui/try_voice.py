@@ -141,5 +141,5 @@ def _result(d, p: float, sim: float, how: str) -> None:
     word = "match" if sim >= hi else "no match" if sim <= lo else "weak match"
     m2.metric("Voiceprint similarity (NVIDIA TitaNet)", f"{sim:.2f}", help=f"Match at {hi} or above, mismatch at {lo} or below.")
     m2.caption(word)
-    st.caption(how + " In a real call these two scores are fused with conversation behaviour, caller ID, "
-               "account context and the liveness challenge (see the Call co-pilot).")
+    st.caption(how + " In a real call these two scores are fused with conversation behaviour, caller ID, account "
+               "context, the liveness challenge and identity questions from the account history (see the Call co-pilot).")

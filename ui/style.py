@@ -18,7 +18,8 @@ ACTION = {   # action -> (color, icon, short label)
     "AUTHORIZED_AGENT": (INFO, "🤖", "Authorised AI agent"),
 }
 CALL_ICONS = {"genuine_customer": ":material/person:", "genuine_new_number": ":material/flight:",
-              "voice_clone": ":material/theater_comedy:", "ai_negotiator": ":material/smart_toy:",
+              "voice_clone": ":material/theater_comedy:", "human_impersonator": ":material/no_accounts:",
+              "ai_negotiator": ":material/smart_toy:", "human_negotiator": ":material/handshake:",
               "ai_assistant": ":material/support_agent:"}
 
 
@@ -63,6 +64,8 @@ CSS = f"""
   .vs-challenge {{border: 1.5px dashed {WARNING}; border-radius: 10px; padding: 10px 14px; margin: 10px 0;}}
   .vs-reason {{font-size: 0.9rem; margin: 3px 0;}}
   .vs-small {{font-size: 0.8rem; opacity: 0.7;}}
+  [data-testid="stMetricLabel"] * {{white-space: normal !important; overflow: visible !important;
+                                    text-overflow: clip !important;}}   /* wrap long KPI labels, don't cut them */
 </style>
 """
 

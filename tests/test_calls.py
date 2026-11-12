@@ -1,4 +1,4 @@
-"""The five demo calls, end to end, on the stored model scores (no ML packages needed)."""
+"""The seven demo calls, end to end, on the stored model scores (no ML packages needed)."""
 import pytest
 
 from vshield import handoff
@@ -8,9 +8,12 @@ EXPECTED = {
     "genuine_customer": ("PROCEED", "Likely genuine customer"),
     "genuine_new_number": ("PROCEED", "Likely genuine customer"),
     "voice_clone": ("ESCALATE", "Likely voice clone of the account holder"),
+    "human_impersonator": ("ESCALATE", "Likely impersonator - not the account holder"),
     "ai_negotiator": ("ESCALATE", "Likely AI agent / bot"),
+    "human_negotiator": ("ESCALATE", "Likely bill negotiator posing as the customer"),
     "ai_assistant": ("AUTHORIZED_AGENT", "AI assistant - customer consent confirmed"),
 }
+HUMAN_VOICES = {"human", "human_impersonator", "human_negotiator"}   # ground truths spoken by real people
 
 
 @pytest.fixture(scope="module")
@@ -102,4 +105,46 @@ def test_human_and_synthetic_callers_are_separated_by_the_models():
     for cid in list_calls():
         call = load_call(cid)
         p = [t["scores"]["synthetic_voice"] for t in call["turns"] if t["speaker"] == "caller"][-1]
-        assert (p < 0.3) if call["ground_truth"] == "human" else (p > 0.7), cid
+        assert (p < 0.3) if call["ground_truth"] in HUMAN_VOICES else (p > 0.7), cid
+
+
+@pytest.mark.parametrize("cid", ["human_impersonator", "human_negotiator"])
+def test_a_real_human_who_is_not_the_account_holder_is_caught(runs, cid):
+    sess, hist = runs[cid]
+    heard = [h for h in hist if h.signals["voiceprint"].available]
+    assert heard and all(h.signals["synthetic_voice"].score < 0.3 for h in heard), "a deepfake detector says: human"
+    assert not any(h.signals["voiceprint"].details["matched"] for h in heard), "...but not the account holder"
+    assert all(h.action in ("STEP_UP", "ESCALATE") for h in heard), "so never proceed on that voice"
+    asked = [h for h in heard if h.identity_results]
+    assert all(h.action == "STEP_UP" for h in heard if not h.identity_results), "verify before escalating"
+    assert asked and all(h.action == "ESCALATE" and h.risk >= 88 for h in asked)
+    assert not asked[0].identity_results[0]["passed"], "cannot answer from the account history"
+
+
+@pytest.mark.parametrize("cid", ["human_impersonator", "human_negotiator"])
+def test_shield_asks_an_identity_question_not_a_liveness_phrase(runs, cid):
+    """A liveness phrase proves a live human, which this caller is. The account history is what they lack."""
+    _, hist = runs[cid]
+    suggested = [h.suggested_challenge for h in hist if h.signals["voiceprint"].available and h.suggested_challenge]
+    assert suggested and all(s["type"] == "record_question" for s in suggested)
+
+
+def test_account_holder_rejects_the_impersonator_on_their_phone(runs):
+    sess, hist = runs["human_impersonator"]
+    final = hist[-1]
+    assert [r["type"] for r in final.identity_results] == ["record_question", "phone_confirmation"]
+    assert final.risk >= 95 and "Not me" in final.top_reasons[1]
+    assert sess.call["telecom"]["ivr_intent"] == "port_out"
+
+
+def test_bill_negotiator_number_calls_about_many_accounts(runs):
+    final = runs["human_negotiator"][1][-1]
+    assert "37 different accounts" in final.signals["telecom"].reasons[0]
+    assert "could not answer" in final.identity_results[0]["verdict"]
+
+
+def test_never_called_genuine_on_someone_elses_voice(runs):
+    for cid, (_, hist) in runs.items():
+        for h in hist:
+            if h.verdict == "Likely genuine customer":
+                assert h.signals["voiceprint"].details["matched"], cid

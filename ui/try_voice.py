@@ -83,11 +83,15 @@ def render() -> None:
         enrolled = None
         if who == ME:
             rec = st.audio_input("Enroll: read anything aloud for 10-20 seconds", sample_rate=SR, key="enroll")
-            if rec:
-                st.session_state.my_voice = _decode(rec.getvalue())
+            up = st.file_uploader("...or upload a recording of yourself", type=["wav", "flac", "ogg"], key="enroll_file",
+                                  help="Browsers only allow the microphone on localhost or HTTPS.")
+            if rec or up:
+                st.session_state.my_voice = _decode((rec or up).getvalue())
             enrolled = st.session_state.get("my_voice")
             if enrolled is None:
-                st.caption("Record your enrollment first.")
+                st.caption("Record or upload your enrollment first.")
+            else:
+                st.caption(f"Enrolled: {len(enrolled) / SR:.0f} s of your voice.")
         elif who:
             enrolled, _ = load_wav(str(DATA / accounts[who]["voiceprint"]))
             st.caption(f"Enrolled voiceprint: {accounts[who]['voiceprint_source']}")
@@ -125,9 +129,10 @@ def render() -> None:
 
 
 def _result(d, p: float, sim: float, how: str) -> None:
-    color = S.ACTION[d.action][0] if d.action != "PROCEED" else S.GOOD
+    color, icon, label = S.ACTION[d.action]
     st.markdown(f'<div class="vs-card"><div class="vs-kicker">Verdict from the two voice models</div>'
                 f'<div class="vs-verdict" style="color:{color};font-size:1.5rem">{S.esc(d.verdict)}</div>'
+                f'<div style="margin:4px 0 8px">{S.badge(f"{icon} {label} · risk {d.risk:.0f}%", color)}</div>'
                 + "".join(f'<div class="vs-reason">• {S.esc(r)}</div>' for r in d.reasons) + "</div>",
                 unsafe_allow_html=True)
     m1, m2 = st.columns(2)

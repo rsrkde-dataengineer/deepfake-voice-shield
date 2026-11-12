@@ -1,149 +1,174 @@
 # Deepfake Voice Shield
 
-Real-time agent co-pilot that tells Customer Care agents how likely a caller is a **voice clone** or an **AI negotiation bot**. It explains why, suggests a liveness challenge, and writes a **transfer handoff card** so the next agent doesn't re-verify a caller who has already been verified.
+A real-time co-pilot for Customer Care agents. It tells them how likely a caller is to be a **voice clone** or an
+**AI negotiation bot**, explains why, suggests a liveness challenge, and writes a **transfer handoff card** so the next
+agent doesn't re-verify a caller who has already been verified.
 
-AI Unlocked Innovation Sprint prototype · Category: AI & Analytics · **100% synthetic data, no customer information.**
+It runs two real models on the caller's voice, **NVIDIA TitaNet** (voiceprint) and **Spectra-AASIST** (synthetic-speech
+detection). It fuses them with conversation behaviour, caller-ID signals, account context and a liveness challenge into
+one explainable 1-99 % risk score.
+
+AI Unlocked Innovation Sprint · AI & Analytics · **No customer data: open data and fictional accounts only.**
 
 ---
 
-## Quick start (VS Code)
+## Five calls, five use cases
+
+| Call | What happens | Shield's decision |
+|---|---|---|
+| **Genuine customer** - duplicate TravelPass charge | A real person (LibriSpeech voice) asks about a billing error | **PROCEED** (risk 3 %). The handoff card says *no re-verification needed*: 60-90 s saved on the transfer |
+| **Genuine customer abroad** - lost phone, new SIM | A real person calls from a hotel line abroad and asks for a SIM change | **STEP UP** (risky context and a high-risk request), he **passes** the phrase challenge, then **PROCEED** |
+| **Voice clone** - SIM swap on Alex Chen | A Chatterbox clone of the customer's own voice | The voiceprint **matches** (0.82), but the voice is synthetic (98 %): **STEP UP**, the clone **fails** the challenge (2.1x slower), then **ESCALATE** |
+| **AI negotiation bot** - retention credit | An undisclosed AI agent impersonating the customer | **ESCALATE** after one sentence (96 %): synthetic voice, wrong voiceprint, machine-steady timing, talks over the agent |
+| **AI assistant (disclosed)** - checks a bill for the customer | A legitimate assistant that says it is an AI | **Authorised AI agent**: consent request on the customer's phone, then information only - not treated as fraud |
+
+The key point: **a voiceprint-only system would let the clone in.** Only combining the voiceprint with the
+synthetic-voice model exposes it (*the voice matches, but it is synthetic*).
+
+## Measured results
+
+Held-out test set: LibriSpeech **test-clean**, 40 speakers never used for tuning. 120 real clips; 82 fakes (32 voice
+clones, 32 neural TTS, 18 older TTS). Thresholds were fixed beforehand (on dev-clean, or from the model card).
+
+| Through a simulated phone line (8 kHz G.711) | Result |
+|---|---|
+| Fake voices flagged as synthetic | **100 %** (clones, neural TTS and older TTS) |
+| Real voices wrongly flagged | **0 of 120** (true rate below ~2.5 % with 95 % confidence) |
+| Clones that fool a voiceprint-only check (TitaNet, match at 0.70) | **97 %** |
+| ...of those, flagged by Shield | **31 of 31** |
+| Voiceprint equal error rate on real speakers | 0.7 % |
+
+These are small, read-speech sets. See the **Model evaluation** page or `reports/eval.json` for every split and
+channel, and *Limitations* below.
+
+---
+
+## Quick start (any laptop, no GPU, no ML install)
 
 ```bash
-python -m venv .venv
-# Windows: .venv\Scripts\activate     macOS/Linux: source .venv/bin/activate
+python -m venv .venv                       # Python 3.10-3.12
+source .venv/bin/activate                  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
-
-python scripts/generate_demo_data.py   # optional, data/ is already included
-streamlit run app.py                   # opens the agent dashboard in your browser
+streamlit run app.py                       # http://localhost:8501
 ```
 
-Other entry points:
+The dashboard uses the scores that TitaNet and Spectra-AASIST produced on these exact recordings, stored in each call
+file, so it shows real model output without downloading the models.
+
+| Page | What it is for |
+|---|---|
+| **Call co-pilot** | Pick a call and press **Next** or **Play**: every turn plays its audio and the risk, verdict, reasons, suggested challenge and signals update. The handoff card and fraud referral are at the bottom. |
+| **Try your voice** | Record, upload or pick a clip and run both models; enroll your own voice first. |
+| **Model evaluation** | Results on the calibration and held-out sets, clean and over a phone line. |
+| **Business impact** | The brief's 76,000 agent-hours / ~$2.2M model, with every assumption adjustable. |
+| **How it works** | Architecture, signals, decision policy, and what is real vs simulated. |
+
+Also: `python -m vshield.cli` (all calls in the terminal), `python -m vshield.cli voice_clone` (turn by turn plus the
+generated documents) and `pytest` (tests for every use case, plus an audio quality gate).
+
+## Run the real models live (optional)
 
 ```bash
-python -m vshield.cli                  # score all 3 demo calls
-python -m vshield.cli voice_clone      # turn-by-turn risk + generated handoff card + fraud referral
-pytest                                 # 11 tests
-```
-
-VS Code: open the folder, accept the recommended Python extension, then use **Run and Debug** → "Dashboard (Streamlit)", "CLI: all calls" or "Tests".
-
----
-
-## Run with the real models (NVIDIA TitaNet + Spectra-AASIST)
-
-You need Python 3.10–3.12, about 5 GB of free disk and internet for the first run (about 2.6 GB of model weights download once). A GPU is optional: Apple Silicon (MPS) or NVIDIA (CUDA) are used automatically, otherwise CPU.
-
-**1. Install [uv](https://docs.astral.sh/uv/)** (it also fetches Python 3.12 if you don't have it):
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh          # macOS / Linux / WSL2
-```
-
-**2. Create the ML environment** (from the project folder):
-```bash
+pip install uv                                          # or: curl -LsSf https://astral.sh/uv/install.sh | sh
 uv venv --python 3.12 .venv-ml
 uv pip install --python .venv-ml/bin/python -r requirements-ml.txt
+.venv-ml/bin/streamlit run app.py
 ```
 
-**3. Add the real-audio calls.** Unzip the shared `real-audio-demo-data.zip` into the project, so that `data/samples/demo/accounts.json` exists. To build them yourself instead, see [reports/spike_eval.md](reports/spike_eval.md); it takes about 30 minutes.
+- **Call co-pilot:** switch on **Run the models live** in the sidebar.
+- **Try your voice:** records and uploads now work. The first run downloads about 2.6 GB of weights.
+- **Speed:** about 0.1 s per call turn on an Apple or NVIDIA GPU, about 1 s on CPU.
+- **Windows:** use WSL2, because NeMo is unreliable on native Windows.
+- **Live CLI:** `.venv-ml/bin/python -m vshield.cli --live` re-runs the models from the command line.
 
-**4. Run:**
+**Demo idea, clone yourself (only your own voice, or a teammate's with written consent):**
+
 ```bash
-export VSHIELD_VOICEPRINT=titanet VSHIELD_SPOOF_MODEL=spectra VSHIELD_DATA=data/samples/demo PYTORCH_ENABLE_MPS_FALLBACK=1
-.venv-ml/bin/python -m vshield.cli               # quick check: 3 calls -> PROCEED / ESCALATE / ESCALATE
-.venv-ml/bin/streamlit run app.py                # dashboard; sidebar should say titanet · spectra · demo
+uv venv --python 3.12 .venv-gen && uv pip install --python .venv-gen/bin/python -r requirements-gen.txt
+.venv-gen/bin/python scripts/clone_voice.py my_voice.wav     # 20 s of you talking -> my_voice_clone.wav
 ```
-In VS Code, use **Run and Debug → "Dashboard (real models, real audio)"**.
 
-**Windows:** NeMo (TitaNet) is not reliable on native Windows, so use **WSL2 (Ubuntu)** and follow the Linux steps. The first run takes a few minutes while about 2.6 GB of model weights download. After that, loading takes 15–60 s, and each call turn takes about 0.1 s on an Apple or NVIDIA GPU and about 1 s on CPU.
-
----
-
-## The three demo calls
-
-| Call | What happens | Shield result |
-|---|---|---|
-| **Genuine customer** (Jordan Ellis, duplicate TravelPass charge) | Natural voice, um/uh, variable timing, stops when the agent interrupts | **~4% → PROCEED.** Handoff card says no re-verification is needed (saves 60-90 s on transfer) |
-| **Voice clone** (SIM-swap attempt on Alex Chen) | The cloned voice **matches the enrolled voiceprint**, asks to send the OTP to a different email, uses a spoofed ANI with C attestation | 51% at ring → **72% STEP-UP** after the first sentence (voice matches but has synthetic artefacts) → fails the phrase challenge → **88% ESCALATE** |
-| **AI negotiation bot** (retention credit on Sam Rivera) | Polished scripted negotiation, constant ~0.9 s reply delay, talks over the agent's interruption, bot-farm ANI | **90%+ ESCALATE** by the second turn. The challenge confirms it (3.2× latency spike) |
-
-The clone case is the key slide. **A voiceprint check alone would have approved this caller.** Only fusing it with the synthetic-voice detector catches the clone.
+On **Try your voice**, enroll yourself with the microphone, then upload `my_voice_clone.wav`. The voiceprint matches
+you, and Shield flags the clone.
 
 ---
 
 ## How it works
 
 ```
-               ┌─────────────────────────── live call ───────────────────────────┐
- caller audio ─┤ A. Synthetic-voice detector  (anti-spoofing: demo DSP | HF model) │
-               │ B. Voiceprint match          (demo cepstral | NVIDIA TitaNet)     │
- transcript  ──┤ C. Conversation behaviour    (latency, disfluency, barge-in,      │──► Risk fusion ──► 0-100 % + verdict
- + timestamps  │                               bot playbook, social engineering)  │    (explainable)    + action + reasons
-               │ + Liveness challenge result  (phrase-repeat latency spike)       │                      + suggested challenge
- CTI / ANI   ──┤ D. Telecom signals           (STIR/SHAKEN, VoIP, velocity, DTMF)  │                      + handoff card / fraud referral
- account     ──┤ E. Account context           (risk flags, intent, credit history) │
-               └──────────────────────────────────────────────────────────────────┘
+caller audio  ─► A. Synthetic voice   Spectra-AASIST (wav2vec2 XLS-R + AASIST)    ─┐
+              ─► B. Voiceprint        NVIDIA TitaNet-Large, cosine vs enrolled     │
+transcript    ─► C. Behaviour         reply-time regularity, barge-in, scripted     ├─► risk fusion 1-99 % ─► policy ─► co-pilot
++ timestamps     + Liveness challenge  playbook, social engineering, AI disclosure  │   (weighted log-odds)   (proceed /    + handoff card
+caller ID/CTI ─► D. Telecom           STIR/SHAKEN, VoIP, velocity, bot-farm ANI     │                          step up /     + fraud referral
+account       ─► E. Account           risk flags, security events, high-risk ask   ─┘                          escalate /
+                                                                                                                 AI agent)
 ```
 
-* **Fusion** is a weighted average of log-odds. The weight of each signal grows with evidence (more seconds of speech means more trust). A confidence factor keeps the score near the prior until enough evidence has arrived. Two explainable pattern rules sit on top:
-  * *voice matches + synthetic artefacts → voice clone*
-  * *synthetic + bot-like behaviour → AI agent*
-* **The score is never 0% or 100%.** Actions are graded:
-  * **PROCEED** (<40)
-  * **STEP-UP** (40-75): liveness challenge or OTP to the device on file; hold credits and changes
-  * **ESCALATE** (>75): warm transfer to Fraud
-* **Disclosed AI assistants** (callers who say "I'm an AI assistant calling on behalf of…") are routed to an *authorised-agent* flow instead of being treated as fraud.
+- **Risk bands:** under 40 % **proceed**; 40-80 % **step up** (challenge or OTP; hold credits and SIM changes);
+  80 % and over **escalate** to Fraud. The score is never 0 % or 100 %.
+- **Pattern rules:** *voice matches + synthetic speech* means a clone, and *synthetic + bot-like behaviour* means a bot.
+  A failed liveness challenge sets a floor of 88 %.
+- **Policy rules:**
+  - A high-risk request (SIM change, port-out, new line) always needs one liveness check.
+  - Nothing counts as verified before the caller has spoken.
+  - A caller that discloses it is an AI goes to the **authorised-agent** flow (consent on the customer's phone).
+- **Never auto-hang-up:** Shield steps up, so a genuine customer on a bad line just answers one quick question.
+- **Why a random phrase:** a bot with breached data answers "what's your zip code?" instantly. Repeating a random
+  phrase forces a clone or bot pipeline to generate new audio on the fly, which shows up as a delay compared with the
+  caller's own baseline.
 
-### Why the liveness challenge is a random phrase, not "what's your zip?"
-A bot with breached data answers knowledge questions instantly. A random phrase forces a bot or clone pipeline to run ASR → LLM → TTS on the fly, which shows up as a latency spike compared with the caller's own baseline. A human simply repeats it.
-
----
-
-## Swapping in production models
-
-The demo backends need only numpy and scipy, so the prototype runs on any laptop. The real models plug into the same interfaces through environment variables:
-
-| Signal | Env var | Production model |
-|---|---|---|
-| Voiceprint | `VSHIELD_VOICEPRINT=titanet` | NVIDIA TitaNet-Large (`nvidia/speakerverification_en_titanet_large`) via NeMo |
-| Synthetic voice | `VSHIELD_SPOOF_MODEL=spectra` | Spectra-AASIST (wav2vec2 XLS-R + AASIST), pinned revision |
-| Synthetic voice | `VSHIELD_SPOOF_MODEL=hf:<model_id>` | Any Hugging Face audio-classification anti-spoofing model |
-| Data folder | `VSHIELD_DATA=data/samples/demo` | The same three calls with real speech (built by `scripts/build_sample_set.py`) |
-| Transcript | (future) | Streaming ASR such as NVIDIA Parakeet / Riva or Whisper feeding `CallSession.add_turn()` |
-
-The real models run in a separate venv (`requirements-ml.txt`), verified on an Apple M1 Pro. Spike results, reproduction steps and limits are in [reports/spike_eval.md](reports/spike_eval.md). In short: on public LibriSpeech speech against Chatterbox clones and Kokoro voices, Spectra-AASIST caught every fake with 0–1% EER, and TitaNet accepted most clones as the customer. The three demo stories keep their outcomes on real audio.
-
-Notes:
-* Recalibrate thresholds after swapping models: `THRESH` in `signals/voiceprint.py` and the logistic in `signals/acoustic.py`.
-* Fine-tune or validate on **8 kHz telephony audio**. Detectors trained on clean 16 kHz audio degrade on phone lines.
-* Check licences. Several anti-spoofing checkpoints are non-commercial (fine for a prototype, but flag it).
-* Confirm with a Tech Coach that NeMo and Hugging Face are on the approved-tools list.
-
-**About the demo detector:** the synthetic audio here is generated by a source-filter synthesizer. "Human" rendering has natural vocal micro-jitter, and "TTS" rendering is unnaturally steady, which mirrors a real cue that neural vocoders leave behind. The demo detector measures that cue transparently. It is a stand-in that shows the end-to-end flow. It is **not** a claim of real-world accuracy; that comes from the trained models above and an evaluation on ASVspoof / In-the-Wild data.
-
----
-
-## Project layout
+Code map:
 
 ```
-app.py                      Streamlit agent dashboard
-vshield/
-  session.py                Streaming call session (turn-by-turn risk snapshots)
-  fusion.py                 Risk fusion, verdicts, actions, top reasons
-  challenge.py              Liveness challenge suggestion + evaluation
-  handoff.py                Generated transfer handoff card + fraud referral
-  signals/acoustic.py       A. synthetic voice detection (demo | HF model)
-  signals/voiceprint.py     B. voiceprint match (demo | NVIDIA TitaNet)
-  signals/behavior.py       C. conversational behaviour
-  signals/context.py        D. telecom + E. account context
-  dsp.py, synth.py          audio utilities + synthetic voice generator
-  cli.py                    command-line replay
-scripts/generate_demo_data.py   builds data/ (accounts, enrolment audio, calls)
-data/                       synthetic accounts, audio, transcripts, CTI metadata
-tests/                      scenario + unit tests
+app.py                     Streamlit entry point (5 pages in ui/)
+ui/                        copilot, try_voice, evaluation, impact, about, shared style
+vshield/session.py         CallSession: replays a call turn by turn, one risk snapshot per turn
+vshield/detectors.py       the two ML models (lazy imports; optional)
+vshield/signals/           synthetic_voice, voiceprint, behavior, context (telecom + account)
+vshield/challenge.py       liveness challenge: suggest and evaluate
+vshield/fusion.py          risk fusion + action policy
+vshield/handoff.py         transfer handoff card + fraud referral
+vshield/impact.py          business-impact model
+vshield/audio.py           WAV I/O, resampling, phone-line simulation, audio quality check
+vshield/cli.py             command-line replay
+data/                      5 calls (JSON + audio), accounts, enrolled voiceprints - see data/NOTICE.md
+reports/eval.json          evaluation results (read by the Model evaluation page)
+scripts/                   rebuild data, score calls, build the evaluation sets, evaluate, clone a voice
+tests/                     use cases, signals and policy, audio quality, live models (when installed)
 ```
 
-## Next steps toward the final demo
-1. Swap in TitaNet and a trained anti-spoofing model, then report a confusion matrix on ASVspoof plus your own 8 kHz recordings.
-2. Live microphone mode: stream mic audio → ASR → `CallSession`.
-3. Replace phrase lists with an LLM classifier for bot-playbook and social-engineering detection, and use the LLM to write the handoff card.
-4. Looker-style baseline: chart transfers avoided and time saved (60-90 s × transfers) to back the ~76K agent-hours / ~$2.2M impact claim.
+## Rebuild everything (reproducible)
+
+```bash
+.venv-gen/bin/python scripts/get_librispeech.py      # public speech, ~680 MB, checksummed
+.venv-gen/bin/python scripts/build_demo_calls.py     # the 5 calls (~5 min on an M1)
+.venv-ml/bin/python  scripts/score_calls.py          # store the model scores in the call files
+.venv-gen/bin/python scripts/build_eval_set.py       # labelled real/fake sets, both splits (~1 h on an M1)
+.venv-ml/bin/python  scripts/evaluate.py             # -> reports/eval.json
+pytest                                               # includes the audio quality gate
+```
+
+Three environments keep each install small: `requirements.txt` (dashboard), `requirements-ml.txt` (models) and
+`requirements-gen.txt` (voice generators: Chatterbox pins an older torch than NeMo).
+
+## Data and licences
+
+- **Real voices:** LibriSpeech (CC BY 4.0).
+- **Voice clones:** Chatterbox (MIT; watermarked).
+- **TTS voices and agents:** Kokoro-82M (Apache-2.0).
+- **Models:** NVIDIA TitaNet-Large (CC BY 4.0) and Spectra-AASIST (Apache-2.0 / MIT, pinned revision).
+- **Mock data:** accounts, numbers and call metadata are fictional.
+
+Details are in [data/NOTICE.md](data/NOTICE.md).
+
+## Limitations
+
+- **Read speech:** evaluation uses read audiobook speech, not real phone conversations. Mobile codecs (AMR, EVS, Opus)
+  and packet loss are not covered yet.
+- **Small sets:** 120 real clips per split can't pin down a 1 % false-alarm rate.
+- **Arms race:** newer or adversarially tuned generators may evade the detector, which reports 14 % EER on the harder
+  ASVspoof5 benchmark. Production needs monitoring and retraining on confirmed fraud.
+- **Simulated parts:** call timing (reply delays, barge-ins), caller ID / CTI data and accounts are simulated, and
+  transcripts are the known text. Production would use streaming ASR such as NVIDIA Parakeet.
+- **Confirm tools:** check NVIDIA NeMo, the Hugging Face models and any LLM with a Tech Coach (sprint rule 2).

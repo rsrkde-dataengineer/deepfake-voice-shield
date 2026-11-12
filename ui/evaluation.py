@@ -59,10 +59,16 @@ def render() -> None:
     fooled, flagged = m["clones_fooling_voiceprint"], m["of_those_flagged_synthetic"]
     k[3].metric("Shield catches", f"{flagged} of {fooled}" if fooled else "-",
                 help="Of the clones that fooled the voiceprint, how many the anti-spoofing model flagged.", border=True)
-    k[4].metric("Voiceprint EER", f"{vp['eer']:.1%}",
-                help="Equal error rate between same-speaker and different-speaker trials of real voices.", border=True)
+    imp = vp.get("impostors")   # same-gender strangers scored against an enrolled voice
+    imp_help = ("Real people scored against someone else's enrolled voice, same gender (the hard case for a human "
+                "impersonator): how many reached the 0.70 match threshold and would pass as the account holder")
+    if imp:
+        imp_help += f", out of {imp['pairs']:,} pairs. Highest similarity: {imp['max']:.2f}."
+    k[4].metric("Impersonators passed", f"{imp['accepted']:,}" if imp else "-", help=imp_help, border=True)
     st.caption(f"{n['speakers']} real speakers, {n['real_test_clips']} real test clips and {n['fake_test_clips']} fake ones "
-               f"({', '.join(f'{v} {ATTACK_NAMES[a[:-6]][0].lower()}{ATTACK_NAMES[a[:-6]][1:]}' for a, v in n.items() if a.endswith('_clips') and a[:-6] in ATTACK_NAMES)}).")
+               f"({', '.join(f'{v} {ATTACK_NAMES[a[:-6]][0].lower()}{ATTACK_NAMES[a[:-6]][1:]}' for a, v in n.items() if a.endswith('_clips') and a[:-6] in ATTACK_NAMES)}). "
+               + (f"{imp['pairs']:,} same-gender impersonation trials. " if imp else "")
+               + f"Voiceprint equal error rate on real speakers: {vp['eer']:.1%}.")
 
     left, right = st.columns(2, gap="large")
     with left:
@@ -78,8 +84,8 @@ def render() -> None:
         fig.update_xaxes(title="cosine similarity to the enrolled voice")
         fig.update_yaxes(title="share of trials", tickformat=".0%")
         st.plotly_chart(fig, config={"displayModeBar": False})
-        st.caption("Real speakers separate cleanly, but voice clones land among the genuine matches. "
-                   "A voiceprint alone cannot stop them.")
+        st.caption("Different people (gray) stay far below the match line, which is how Shield catches a human "
+                   "impersonator. But voice clones land among the genuine matches: a voiceprint alone cannot stop them.")
     with right:
         st.markdown("##### Synthetic voice: is it a real human? (Spectra-AASIST)")
         fig = go.Figure()
@@ -106,8 +112,10 @@ def render() -> None:
                    "Anti-spoofing EER": mm["synthetic_voice"]["eer"],
                    "Real callers flagged": mm["synthetic_voice"]["false_alarm_rate"]}
             row |= {f"Caught: {ATTACK_NAMES[a].split(' (')[0]}": v for a, v in mm["synthetic_voice"]["detection_rate"].items()}
+            imp = mm["voiceprint"].get("impostors")
             row |= {"Voiceprint EER": mm["voiceprint"]["eer"], "Clones accepted by voiceprint": mm["voiceprint"]["accept_rate"]["clone"],
-                    "Different speakers accepted": mm["voiceprint"]["accept_rate"]["other_speaker"]}
+                    "Different speakers accepted": mm["voiceprint"]["accept_rate"]["other_speaker"],
+                    "Same-gender impersonators accepted": imp["accepted"] / imp["pairs"] if imp else None}
             rows.append(row)
     df = pd.DataFrame(rows)
     st.dataframe(df, hide_index=True, width="stretch",
@@ -120,6 +128,8 @@ def render() -> None:
   different-speaker trials on test-clean) follows the team's verification notebook.
 - **Fake voices:** Chatterbox zero-shot clones made from a separate recording of each target speaker, Kokoro-82M
   neural TTS, and macOS text-to-speech.
+- **Human impersonators:** every real test clip is also scored against the enrolled voice of every other speaker of
+  the same gender, as if that person were calling in someone else's name.
 - **Decision points fixed in advance:** synthetic probability 0.5 (Spectra-AASIST model card) and voiceprint match
   0.70 (dev-clean only). Equal error rates are shown for comparison with published results.
 - **Phone line:** every clip also goes through 8 kHz G.711; mobile codecs (AMR, EVS, Opus) and packet loss are not

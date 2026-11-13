@@ -163,11 +163,13 @@ def value() -> None:
     m = _money()
     _band("Value", S.esc(C.VALUE_HEADLINE), C.VALUE_INTRO)
     k = st.columns(4)
-    k[0].metric("To build (one time)", f"${m['build']:,.0f}", border=True,
-                help=_md(f"A {impact.BUILD_SIZE} effort: about {m['dev']} hours of our build time × "
-                         f"${impact.RATE_CARD['developer']:.0f}/hour, the sprint's rate card."))
-    k[1].metric("To run, a year", f"${impact.RUN_COST_PER_YEAR / 1e3:,.0f}k", border=True,
-                help="GPU inference for the open-source models; no per-call license fees.")
+    k[0].metric("To build: people's time, once", f"${m['build'] / 1e3:,.0f}k", border=True,
+                help=_md(f"A {impact.BUILD_SIZE} effort: {m['dev']} developer/IT hours × "
+                         f"${impact.RATE_CARD['developer']:.0f} + {m['biz']} business/SME hours × "
+                         f"${impact.RATE_CARD['business']:.0f}, the sprint's rate card."))
+    k[1].metric("To run: GCP infrastructure, a year", f"${impact.RUN_COST_PER_YEAR:,.0f}", border=True,
+                help="Cloud infrastructure on GCP for the open-source models; no per-call license fees. People's time "
+                     "is in the build cost.")
     k[2].metric("Back, a year", f"${m['dollars'] / 1e6:.2f}M", border=True,
                 help=_md(f"{m['hours']:,.0f} agent hours at the brief's ${impact.BRIEF['hourly_cost']:.0f}/hour."))
     k[3].metric("Payback", impact.payback_label(m["payback"]).replace("about ", "~"), border=True,

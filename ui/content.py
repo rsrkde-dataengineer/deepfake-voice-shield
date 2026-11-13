@@ -113,7 +113,7 @@ NEXT_IN_PRODUCT = [   # (title, text)
     ("Connected signals", "Number-reputation feeds, the account risk store and the case system."),
 ]
 
-VALUE_HEADLINE = "$2,000 to build. $2.28M a year back."
+VALUE_HEADLINE = "$55k to build. $2.28M a year back."
 VALUE_INTRO = ("Verified once, never re-asked: the handoff card travels with every transfer. The base case uses the "
                "brief's own numbers; everything else is upside.")
 VALUE_STREAMS = [   # (material icon, title, text)
@@ -127,6 +127,7 @@ VALUE_STREAMS = [   # (material icon, title, text)
      "rules call for, with a reason and an audit trail for every decision."),
 ]
 VALUE_NOTES = ("Base case: the brief's ~76,000 agent hours (~3.65M transferred calls × 75 s) at its $30/hour loaded "
-               "rate; confirm in the Looker chip_cs Handoffs dashboard. Build: the sprint's T-shirt sizing (Small: about "
-               "20 hours of our build time at its $100/hour developer rate). Fraud: a what-if with mock inputs, not in the "
+               "rate; confirm in the Looker chip_cs Handoffs dashboard. Build: people's time, sized with the sprint's "
+               "T-shirt guide (Large) and rate card ($100/h developer/IT, $75/h business/SME). Run: about $2,000 a year "
+               "of GCP infrastructure. Fraud: a what-if with mock inputs, not in the "
                "payback; the pilot replaces them with the fraud team's real counts.")

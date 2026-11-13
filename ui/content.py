@@ -5,6 +5,7 @@ and the written submission. Plain data, no Streamlit; the money figures come fro
 """
 
 TAGLINE = ("Verify the caller once.", "Protect every transfer.")
+TEAM = [("Rajkumar", ""), ("Pavithra", ""), ("Pooja", ""), ("Jegan", "")]   # (name, role); a role shows when filled in
 
 ABOUT_KICKER = "Real-time caller verification for Customer Care"
 ABOUT_INTRO = ("Deepfake Voice Shield is a real-time co-pilot for Customer Care agents. On every caller turn it tells "
@@ -74,7 +75,7 @@ PROOF = [   # held-out evaluation, phone line (reports/eval.json, test-clean, te
 PROOF_LIMITS = ("Held-out LibriSpeech voices through a simulated 8 kHz G.711 phone line, thresholds fixed in advance. "
                 "Small read-speech sets and known generators only: a pilot re-measures on real calls.")
 BUILT_WITH = ("NVIDIA TitaNet-Large (NeMo) and Spectra-AASIST (Hugging Face), open-source models that score a turn in "
-              "about 0.1 s; a Python fusion engine with 74 automated tests. Production path: NVIDIA Riva/Parakeet "
+              "about 0.1 s; a Python fusion engine with 75 automated tests. Production path: NVIDIA Riva/Parakeet "
               "streaming ASR and Triton GPU serving.")
 DATA_ETHICS = ("Open and synthetic data only: LibriSpeech readers (CC BY 4.0), a Chatterbox clone (MIT) and Kokoro "
                "voices (Apache-2.0); fictional accounts and 555 numbers; no customer data. In production, voiceprints "

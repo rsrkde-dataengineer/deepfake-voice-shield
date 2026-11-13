@@ -22,6 +22,13 @@ CSS = """
   .vs-band .stats span {font-size: 0.82rem; color: #a8a6a0;}
   .vs-step {display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
             background: #cd040b; color: #fff; font-weight: 700; font-size: 0.85rem; margin-bottom: 6px;}
+  .vs-team {display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; margin: 4px 0 8px;}
+  .vs-member {display: flex; align-items: center; gap: 12px; border: 1px solid rgba(127,127,127,0.25); border-radius: 12px;
+              padding: 12px 14px;}
+  .vs-member .a {flex: none; width: 44px; height: 44px; border-radius: 50%; background: #141414; color: #fff;
+                 display: grid; place-items: center; font-weight: 800; font-size: 1.1rem; box-shadow: inset 0 0 0 2px #ff4d4d;}
+  .vs-member b {font-size: 1.02rem;}
+  .vs-member .r {font-size: 0.8rem; opacity: 0.7;}
   .vs-tagline {font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; margin: 18px 0 6px;}
   .vs-tagline span {color: #cd040b;}
 </style>
@@ -57,6 +64,17 @@ def _steps(items: list[tuple[str, str]]) -> None:
             st.markdown(f'<div class="vs-step">{i + 1}</div>', unsafe_allow_html=True)
             st.markdown(f"**{_md(title)}**")
             st.caption(_md(text))
+
+
+def _team() -> None:
+    cards = "".join(f'<div class="vs-member"><div class="a">{S.esc(n[:1])}</div><div><b>{S.esc(n)}</b>'
+                    + (f'<div class="r">{S.esc(r)}</div>' if r else "") + "</div></div>" for n, r in C.TEAM)
+    st.markdown(CSS + f'<div class="vs-team">{cards}</div>', unsafe_allow_html=True)
+
+
+def team_line() -> str:
+    names = [n for n, _ in C.TEAM]
+    return "Built by " + (", ".join(names[:-1]) + " and " + names[-1] if len(names) > 1 else "".join(names)) + "."
 
 
 def _link(key: str, label: str, icon: str) -> None:
@@ -114,6 +132,9 @@ def about() -> None:
     with right:
         st.markdown("#### Data and ethics")
         st.markdown(_md(C.DATA_ETHICS))
+    if C.TEAM:
+        st.markdown("#### Team")
+        _team()
 
 
 def vision() -> None:
@@ -133,6 +154,8 @@ def vision() -> None:
         st.markdown("\n".join(f"- **{t}:** {x}" for t, x in C.NEXT_IN_PRODUCT))
     st.markdown(f'<div class="vs-tagline">{S.esc(C.TAGLINE[0])} <span>{S.esc(C.TAGLINE[1])}</span></div>',
                 unsafe_allow_html=True)
+    if C.TEAM:
+        st.caption(team_line())
 
 
 def value() -> None:
@@ -172,3 +195,5 @@ def value() -> None:
         st.markdown(_md("| Share of transfers Shield verifies | Back a year | Payback |\n|---|---:|---:|\n" + rows))
         _link("impact", "Change any assumption in the calculator", ":material/calculate:")
     st.caption(_md(C.VALUE_NOTES))
+    if C.TEAM:
+        st.caption(team_line())

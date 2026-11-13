@@ -91,10 +91,13 @@ def test_impact_model_reproduces_the_brief():
 
 
 def test_build_cost_and_payback_match_the_pitch():
-    assert impact.build_cost() == (460, 120, 55_000)                          # a Large effort: 580 h, $55k
+    assert impact.build_cost() == (20, 0, 2_000)                              # a Small effort: 20 h, $2,000
     _, dollars = impact.transfer_savings(**impact.BRIEF)
-    assert round(impact.payback_days(dollars)) == 9                           # "about 9 days"
-    assert round(impact.payback_days(dollars * impact.FULLY_LOADED_HOURLY_COST / impact.BRIEF["hourly_cost"])) == 5
+    assert impact.payback_label(impact.payback_days(dollars)) == "about 8 hours"
+    full = dollars * impact.FULLY_LOADED_HOURLY_COST / impact.BRIEF["hourly_cost"]
+    assert impact.payback_label(impact.payback_days(full)) == "about 5 hours"
+    assert impact.payback_label(impact.payback_days(dollars / 4)) == "about 34 hours"
+    assert impact.payback_label(3.2) == "about 3 days"
     assert impact.payback_days(impact.RUN_COST_PER_YEAR) == float("inf")
 
 

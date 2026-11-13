@@ -163,16 +163,18 @@ def value() -> None:
     m = _money()
     _band("Value", S.esc(C.VALUE_HEADLINE), C.VALUE_INTRO)
     k = st.columns(4)
-    k[0].metric("To build (one time)", f"${m['build'] / 1e3:,.0f}k", border=True,
-                help=_md(f"A Large effort: {m['dev']} developer/IT hours × $100 + {m['biz']} business/SME hours × $75."))
+    k[0].metric("To build (one time)", f"${m['build']:,.0f}", border=True,
+                help=_md(f"A {impact.BUILD_SIZE} effort: about {m['dev']} hours of our build time × "
+                         f"${impact.RATE_CARD['developer']:.0f}/hour, the sprint's rate card."))
     k[1].metric("To run, a year", f"${impact.RUN_COST_PER_YEAR / 1e3:,.0f}k", border=True,
                 help="GPU inference for the open-source models; no per-call license fees.")
     k[2].metric("Back, a year", f"${m['dollars'] / 1e6:.2f}M", border=True,
                 help=_md(f"{m['hours']:,.0f} agent hours at the brief's ${impact.BRIEF['hourly_cost']:.0f}/hour."))
-    k[3].metric("Payback", f"~{m['payback']:.0f} days", border=True, help="Build cost ÷ daily savings after running cost.")
+    k[3].metric("Payback", impact.payback_label(m["payback"]).replace("about ", "~"), border=True,
+                help="Build cost ÷ daily savings after running cost.")
     u = st.columns(2)
     u[0].metric(f"Upside: at a fully loaded ${impact.FULLY_LOADED_HOURLY_COST:.0f}/hour", f"${m['full'] / 1e6:.1f}M a year",
-                border=True, help=f"Same hours; payback about {m['payback_full']:.0f} days.")
+                border=True, help=f"Same hours; payback {impact.payback_label(m['payback_full'])}.")
     w = impact.FRAUD_WHAT_IF
     u[1].metric("Upside: fraud avoided (illustrative)", f"${m['fraud'] / 1e6:.1f}M a year", border=True,
                 help=_md(f"Mock inputs: {w['attempts_per_month']:,} bot or clone calls a month × ${w['loss_per_attempt']}, "
@@ -187,10 +189,10 @@ def value() -> None:
         rows = "\n".join(f"| {n} | {d or '-'} | {b or '-'} | ${d * impact.RATE_CARD['developer'] + b * impact.RATE_CARD['business']:,.0f} |"
                          for n, d, b in impact.BUILD_PACKAGES)
         st.markdown(_md("| Work package | Dev/IT h | SME h | Cost |\n|---|---:|---:|---:|\n" + rows +
-                        f"\n| **Total: Large effort** | **{m['dev']}** | **{m['biz']}** | **${m['build']:,.0f}** |"))
+                        f"\n| **Total: {impact.BUILD_SIZE} effort** | **{m['dev']}** | **{m['biz'] or '-'}** | **${m['build']:,.0f}** |"))
     with right:
         st.markdown("#### Even at a fraction of the volume")
-        rows = "\n".join(f"| {s:.0%} | ${m['dollars'] * s / 1e6:.2f}M | {impact.payback_days(m['dollars'] * s):.0f} days |"
+        rows = "\n".join(f"| {s:.0%} | ${m['dollars'] * s / 1e6:.2f}M | {impact.payback_label(impact.payback_days(m['dollars'] * s))} |"
                          for s in (1.0, 0.75, 0.5, 0.25))
         st.markdown(_md("| Share of transfers Shield verifies | Back a year | Payback |\n|---|---:|---:|\n" + rows))
         _link("impact", "Change any assumption in the calculator", ":material/calculate:")

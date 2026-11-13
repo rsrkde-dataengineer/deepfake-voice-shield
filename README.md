@@ -68,6 +68,7 @@ file, so it shows real model output without downloading the models.
 | **Model evaluation** | Results on the calibration and held-out sets, clean and over a phone line. |
 | **Business impact** | The brief's 76,000 agent-hours / ~$2.2M model, with every assumption adjustable. |
 | **How it works** | Architecture, signals, decision policy, and what is real vs simulated. |
+| **About · Vision · Value** | The product story, the roadmap and the business case (links at the top right of every page). |
 
 Also: `python -m vshield.cli` (all calls in the terminal), `python -m vshield.cli voice_clone` (turn by turn plus the
 generated documents) and `pytest` (tests for every use case, plus an audio quality gate).
@@ -148,8 +149,9 @@ account       ─► E. Account           risk flags, security events, high-risk
 Code map:
 
 ```
-app.py                     Streamlit entry point (5 pages in ui/)
-ui/                        copilot, try_voice, evaluation, impact, about, shared style
+app.py                     Streamlit entry point (8 pages in ui/)
+ui/                        copilot, try_voice, evaluation, impact, about (How it works), shared style
+ui/product.py, content.py  About, Vision and Value pages; their text lives in content.py
 vshield/session.py         CallSession: replays a call turn by turn, one risk snapshot per turn
 vshield/detectors.py       the two ML models (lazy imports; optional)
 vshield/signals/           synthetic_voice, voiceprint, behavior, context (telecom + account)
@@ -157,7 +159,7 @@ vshield/challenge.py       liveness challenge: suggest and evaluate
 vshield/identity.py        identity check: account-history question and phone confirmation, matched against records
 vshield/fusion.py          risk fusion + action policy
 vshield/handoff.py         transfer handoff card + fraud referral
-vshield/impact.py          business-impact model
+vshield/impact.py          business-impact model: savings, fraud what-if, build cost and payback
 vshield/audio.py           WAV I/O, resampling, phone-line simulation, audio quality check
 vshield/cli.py             command-line replay
 data/                      7 calls (JSON + audio), accounts, enrolled voiceprints - see data/NOTICE.md

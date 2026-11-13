@@ -90,6 +90,14 @@ def test_impact_model_reproduces_the_brief():
     assert round(impact.fraud_avoided(**impact.FRAUD_WHAT_IF)) == 12_600_000  # the pitch's illustrative "$12.6M"
 
 
+def test_build_cost_and_payback_match_the_pitch():
+    assert impact.build_cost() == (460, 120, 55_000)                          # a Large effort: 580 h, $55k
+    _, dollars = impact.transfer_savings(**impact.BRIEF)
+    assert round(impact.payback_days(dollars)) == 9                           # "about 9 days"
+    assert round(impact.payback_days(dollars * impact.FULLY_LOADED_HOURLY_COST / impact.BRIEF["hourly_cost"])) == 5
+    assert impact.payback_days(impact.RUN_COST_PER_YEAR) == float("inf")
+
+
 def test_telephone_channel_is_narrowband():
     from scipy.signal import welch
     y = np.random.default_rng(0).uniform(-0.5, 0.5, 16_000).astype(np.float32)

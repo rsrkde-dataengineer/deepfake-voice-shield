@@ -23,12 +23,14 @@ def render() -> None:
                                               "100% = the brief's assumption.") / 100
         cost = st.number_input("Loaded agent cost per hour ($)", 10.0, 100.0, impact.BRIEF["hourly_cost"], step=1.0)
         st.markdown("##### Fraud (illustrative)")
-        attempts = st.number_input("Bot and clone calls per month", 0, 100_000, 2_000, step=100,
+        what_if = impact.FRAUD_WHAT_IF
+        attempts = st.number_input("Bot and clone calls per month", 0, 100_000, what_if["attempts_per_month"], step=100,
                                    help="Mock figure - replace with the fraud team's count.")
-        loss = st.number_input("Average loss per successful attempt ($)", 0, 5_000, 150, step=10,
+        loss = st.number_input("Average loss per successful attempt ($)", 0, 5_000, what_if["loss_per_attempt"], step=10,
                                help="Credits, waived fees or SIM-swap liability. Mock figure.")
-        today = st.slider("Share caught today", 0, 100, 30, 5, format="%d%%", help="Mock figure.") / 100
-        shield = st.slider("Share caught with Shield", 0, 100, 95, 5, format="%d%%",
+        today = st.slider("Share caught today", 0, 100, int(what_if["baseline_catch_rate"] * 100), 5, format="%d%%",
+                          help="Mock figure.") / 100
+        shield = st.slider("Share caught with Shield", 0, 100, int(what_if["catch_rate"] * 100), 5, format="%d%%",
                            help="Leaves room for newer generators than the ones in the evaluation.") / 100
     hours, dollars = impact.transfer_savings(transfers, seconds, share, cost)
     fraud = impact.fraud_avoided(attempts, loss, shield, today)
@@ -48,6 +50,8 @@ def render() -> None:
   × {usd}{cost:,.0f}/h = **{usd}{dollars:,.0f}**.
 - The brief quotes **~76,000 hours and ~{usd}2.2M** a year at 60-90 s per transferred call; the defaults here
   reproduce it.
+- Upside: at a fully loaded {usd}{impact.FULLY_LOADED_HOURLY_COST:,.0f}/h (wages plus benefits, facilities and
+  supervision) the same hours are worth **{usd}{hours * impact.FULLY_LOADED_HOURLY_COST / 1e6:,.2f}M** a year.
 - Fraud: {attempts:,.0f} attempts a month × 12 × {usd}{loss:,.0f} × ({shield:.0%} − {today:.0%}) caught =
   **{usd}{fraud:,.0f}** a year (mock inputs - replace with real fraud data).
 - Baseline to compare against: the Looker *chip_cs Handoffs* dashboard (transfer counts and re-verification time).

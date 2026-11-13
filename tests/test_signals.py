@@ -86,6 +86,8 @@ def test_impact_model_reproduces_the_brief():
     hours, dollars = impact.transfer_savings(**impact.BRIEF)
     assert 75_000 < hours < 77_000 and 2.2e6 < dollars < 2.35e6
     assert impact.fraud_avoided(100, 50, 0.9, 0.4) == 100 * 12 * 50 * 0.5
+    assert 3.75e6 < hours * impact.FULLY_LOADED_HOURLY_COST < 3.85e6          # the pitch's "$3.8M fully loaded"
+    assert round(impact.fraud_avoided(**impact.FRAUD_WHAT_IF)) == 12_600_000  # the pitch's illustrative "$12.6M"
 
 
 def test_telephone_channel_is_narrowband():

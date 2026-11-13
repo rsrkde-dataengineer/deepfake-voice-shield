@@ -13,3 +13,6 @@ __pycache__/
 # Internal project notes, never committed
 claude.md
 reference/
+
+# Submission materials (internal, kept out of the public repo)
+#submission/

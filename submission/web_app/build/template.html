@@ -1,0 +1,1212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Deepfake Voice Shield</title>
+<style>
+  :root {
+    --good: #0ca30c; --warning: #fab219; --critical: #d03b3b; --info: #2a78d6; --muted: #898781; --brand: #cd040b;
+    --ink: #141414; --ink2: #4a4945; --line: rgba(127,127,127,0.25); --soft: rgba(127,127,127,0.08);
+    --side: #f4f4f2; --bg: #ffffff; --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a;
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; }
+  button { font: inherit; }
+  .ico { display: inline-block; width: 1em; height: 1em; vertical-align: -0.14em; flex: none; }
+  .ico svg { width: 100%; height: 100%; display: block; }
+  .small { font-size: 0.82rem; color: var(--ink2); line-height: 1.45; }
+
+  /* ---- site header ---- */
+  .site { position: sticky; top: 0; z-index: 20; background: var(--ink); color: #f4f4f2; display: flex; align-items: center;
+    flex-wrap: wrap; gap: 0 18px; padding: 0 24px; min-height: 58px; }
+  .brand { display: flex; align-items: center; gap: 9px; font-weight: 800; font-size: 1.08rem; letter-spacing: -0.01em;
+    cursor: pointer; background: none; border: 0; color: inherit; padding: 0; white-space: nowrap; }
+  .brand .ico { color: #ff4d4d; font-size: 1.4rem; }
+  .brand span { color: #ff4d4d; }
+  .site nav { margin-left: auto; display: flex; align-items: center; overflow-x: auto; scrollbar-width: none; }
+  .site nav::-webkit-scrollbar { display: none; }
+  .site nav button { background: none; border: 0; border-bottom: 2px solid transparent; color: #c9c7c1; padding: 18px 12px 16px;
+    font-weight: 600; font-size: 0.92rem; cursor: pointer; white-space: nowrap; }
+  .site nav button:hover { color: #ffffff; }
+  .site nav button.active { color: #ffffff; border-bottom-color: #ff4d4d; }
+  .site nav .sep { width: 1px; height: 22px; background: rgba(255,255,255,0.22); margin: 0 8px; flex: none; }
+
+  /* ---- shared page parts ---- */
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
+  .hero { background: var(--ink); color: #f4f4f2; padding: 54px 0 44px; }
+  .kicker { font-size: 0.75rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+  .hero .kicker { color: #a8a6a0; }
+  .hero h1 { font-size: clamp(2rem, 4.4vw, 3.3rem); line-height: 1.07; letter-spacing: -0.03em; margin: 0 0 16px; font-weight: 800; }
+  .hero h1 span { color: #ff4d4d; }
+  .lead { font-size: 1.1rem; color: #d6d4ce; max-width: 760px; margin: 0; }
+  .hero-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 44px; align-items: center; }
+  .cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+  .bigbtn { display: inline-flex; align-items: center; gap: 8px; border-radius: 10px; padding: 11px 18px; font-weight: 700;
+    cursor: pointer; border: 1px solid transparent; font-size: 0.98rem; }
+  .bigbtn.primary { background: var(--brand); color: #fff; }
+  .bigbtn.primary:hover { background: #e0161e; }
+  .bigbtn.ghost { background: transparent; color: #fff; border-color: rgba(255,255,255,0.4); }
+  .bigbtn.ghost:hover { border-color: #fff; }
+  .bigbtn.plain { background: #fff; color: var(--ink); border-color: var(--line); }
+  .hero-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; margin-top: 40px;
+    border-top: 1px solid rgba(255,255,255,0.14); padding-top: 22px; }
+  .hero-stats b { display: block; font-size: 1.7rem; letter-spacing: -0.02em; color: #fff; }
+  .hero-stats span { color: #a8a6a0; font-size: 0.85rem; }
+  .section { padding: 46px 0 6px; }
+  .section h2 { font-size: 1.6rem; letter-spacing: -0.02em; margin: 0 0 6px; }
+  .section .intro { color: var(--ink2); max-width: 840px; margin: 0 0 22px; }
+  .grid { display: grid; gap: 16px; }
+  .g2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .g5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .tile { border: 1px solid var(--line); border-radius: 14px; padding: 18px; background: #fff; }
+  .tile .ic { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--brand);
+    color: #fff; font-size: 1.3rem; margin-bottom: 12px; }
+  .tile h3 { font-size: 1.02rem; margin: 0 0 6px; letter-spacing: -0.01em; }
+  .tile p { margin: 0; color: var(--ink2); font-size: 0.92rem; }
+  .tile.dark { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .tile.dark p { color: #c9c7c1; }
+  .callout { display: flex; gap: 12px; align-items: flex-start; border-radius: 12px; padding: 14px 18px; margin-top: 16px;
+    background: rgba(205,4,11,0.06); border: 1px solid rgba(205,4,11,0.2); }
+  .callout .ico { font-size: 1.3rem; color: var(--brand); margin-top: 1px; }
+  .callout.info { background: rgba(42,120,214,0.08); border-color: rgba(42,120,214,0.28); }
+  .callout.info .ico { color: var(--info); }
+  .flow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .flow .step { position: relative; padding-right: 22px; }
+  .flow .n { position: relative; z-index: 1; width: 36px; height: 36px; border-radius: 50%; background: var(--ink); color: #fff;
+    display: grid; place-items: center; font-weight: 700; margin-bottom: 10px; }
+  .flow.red .n { background: var(--brand); }
+  .flow .step::before { content: ""; position: absolute; top: 17px; left: 36px; right: 0; height: 2px; background: var(--line); }
+  .flow .step:last-child::before { display: none; }
+  .flow h3 { font-size: 1.02rem; margin: 0 0 4px; }
+  .flow p { margin: 0; color: var(--ink2); font-size: 0.92rem; }
+  .signals { grid-template-columns: repeat(auto-fill, minmax(255px, 1fr)); margin-top: 26px; }
+  .sig7 { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: flex; gap: 12px; }
+  .sig7 .n { flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--brand); color: #fff; display: grid;
+    place-items: center; font-size: 0.8rem; font-weight: 700; }
+  .sig7 h4 { margin: 0 0 2px; font-size: 0.96rem; }
+  .sig7 p { margin: 0; font-size: 0.86rem; color: var(--ink2); }
+  .sig7 .how { font-size: 0.78rem; color: var(--muted); margin-top: 4px; }
+  .blind { border: 2px solid var(--critical); position: relative; padding-top: 24px; }
+  .tag { position: absolute; top: -11px; left: 16px; background: var(--critical); color: #fff; font-size: 0.72rem; font-weight: 700;
+    border-radius: 999px; padding: 2px 10px; }
+  .num-tile { border-radius: 14px; padding: 18px; background: var(--soft); }
+  .num-tile b { display: block; font-size: 1.9rem; letter-spacing: -0.02em; line-height: 1.15; }
+  .num-tile span { font-size: 0.86rem; color: var(--ink2); }
+  .checks { list-style: none; padding: 0; margin: 0; }
+  .checks li { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .checks li .ico { color: var(--brand); font-size: 1.2rem; margin-top: 1px; }
+  .band { background: var(--ink); color: #fff; border-radius: 16px; padding: 28px 30px; margin: 46px 0 10px; display: flex;
+    flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; }
+  .tagline { font-size: clamp(1.3rem, 2.6vw, 1.75rem); font-weight: 800; letter-spacing: -0.02em; }
+  .tagline span { color: #ff4d4d; }
+  .site-foot { border-top: 1px solid var(--line); margin-top: 46px; padding: 22px 0 34px; }
+  .foot { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 24px; }
+  .member { display: flex; align-items: center; gap: 12px; border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+  .member b { font-size: 1.05rem; }
+  .avatar { flex: none; width: 46px; height: 46px; border-radius: 50%; background: var(--ink); color: #fff; display: grid;
+    place-items: center; font-weight: 800; font-size: 1.15rem; box-shadow: inset 0 0 0 2px #ff4d4d; }
+  .demo-btn { display: inline-flex; align-items: center; gap: 16px; border: 0; border-radius: 16px; padding: 12px 28px 12px 12px;
+    background: var(--brand); color: #fff; cursor: pointer; text-align: left; font: inherit;
+    box-shadow: 0 12px 34px rgba(205,4,11,0.45); transition: transform .15s, box-shadow .15s, background .15s; }
+  .demo-btn:hover { transform: translateY(-2px); background: #e0161e; box-shadow: 0 16px 40px rgba(205,4,11,0.6); }
+  .demo-btn .pulse { position: relative; flex: none; width: 56px; height: 56px; border-radius: 50%; background: #fff;
+    color: var(--brand); display: grid; place-items: center; font-size: 2.1rem; }
+  .demo-btn .pulse::after { content: ""; position: absolute; inset: -7px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.75); animation: ring 1.8s ease-out infinite; }
+  @keyframes ring { 0% { transform: scale(0.88); opacity: 1; } 100% { transform: scale(1.35); opacity: 0; } }
+  .demo-btn b { display: block; font-size: 1.45rem; letter-spacing: -0.01em; line-height: 1.15; }
+  .demo-btn small { display: block; font-size: 0.86rem; opacity: 0.92; font-weight: 500; margin-top: 2px; }
+  .demo-how { color: #d6d4ce; font-size: 0.98rem; margin: 18px 0 0; max-width: 640px; }
+  .demo-how b { color: #fff; }
+  .quick { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; align-items: center; }
+  .quick .lbl { color: #a8a6a0; font-size: 0.82rem; margin-right: 2px; }
+  .qchip { display: inline-flex; align-items: center; gap: 7px; border: 1px solid rgba(255,255,255,0.28);
+    background: rgba(255,255,255,0.06); color: #f4f4f2; border-radius: 999px; padding: 6px 13px; font-size: 0.86rem;
+    font-weight: 600; cursor: pointer; }
+  .qchip:hover { border-color: #fff; background: rgba(255,255,255,0.14); }
+  .qchip i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .card-link { position: relative; display: block; cursor: pointer; transition: transform .15s; }
+  .card-link:hover { transform: translateY(-3px); }
+  .card-link .watch { position: absolute; top: 12px; right: 12px; z-index: 1; display: inline-flex; align-items: center;
+    gap: 5px; background: var(--brand); color: #fff; border-radius: 999px; padding: 5px 12px 5px 8px; font-size: 0.8rem;
+    font-weight: 700; box-shadow: 0 4px 12px rgba(205,4,11,0.35); }
+  .site nav button.nav-cta { display: inline-flex; align-items: center; gap: 5px; background: var(--brand); color: #fff;
+    border-radius: 999px; border-bottom: 0; padding: 8px 15px 8px 10px; margin-right: 10px; }
+  .site nav button.nav-cta:hover { background: #e0161e; }
+  .site nav button.nav-cta.active { box-shadow: inset 0 0 0 2px #fff; }
+  .btn.attention { animation: attention 1s ease-in-out 3; }
+  @keyframes attention { 50% { box-shadow: 0 0 0 6px rgba(205,4,11,0.35); border-color: var(--brand); } }
+  @media (prefers-reduced-motion: reduce) { .demo-btn .pulse::after, .btn.attention { animation: none; } }
+  .linkish { background: none; border: 0; padding: 0; color: var(--brand); font-weight: 650; cursor: pointer; }
+  .linkish:hover { text-decoration: underline; }
+
+  /* ---- value ---- */
+  .kpi { border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; background: #fff; }
+  .kpi .label { font-size: 0.85rem; color: var(--ink2); }
+  .kpi .value { font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; margin-top: 4px; }
+  .kpi .sub { font-size: 0.8rem; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+  .kpi.dark { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .kpi.dark .label { color: #c9c7c1; }
+  .kpi.dark .sub { color: #a8a6a0; }
+  .calc { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 32px; }
+  .calc h3 { font-size: 1rem; margin: 6px 0 12px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: flex; justify-content: space-between; gap: 10px; font-size: 0.9rem; font-weight: 600; margin-bottom: 6px; }
+  .field label output { color: var(--brand); font-weight: 700; }
+  .field input[type=range] { width: 100%; accent-color: var(--brand); }
+  .field input[type=number] { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; }
+  .presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .chipbtn { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 2px 10px; font-size: 0.8rem;
+    cursor: pointer; }
+  .chipbtn:hover { border-color: var(--ink2); }
+  .adds { margin: 14px 0 0; padding-left: 18px; font-size: 0.9rem; }
+  .adds li { margin: 4px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.88rem; margin: 6px 0; }
+  th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-weight: 650; background: var(--soft); }
+  td.r, th.r { text-align: right; white-space: nowrap; }
+  td.nw { white-space: nowrap; }
+  table.results th { font-size: 0.8rem; }
+  table.results th.grp { text-align: center; border-bottom: 1px solid var(--line); }
+  tr.total td { font-weight: 700; background: var(--soft); }
+
+  /* ---- evidence ---- */
+  .toolbar { display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin-bottom: 18px; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .seg button { border: 0; background: #fff; padding: 7px 12px; cursor: pointer; font-weight: 600; color: var(--ink2); font-size: 0.88rem; }
+  .seg button.on { background: var(--ink); color: #fff; }
+  .charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; margin-top: 26px; }
+  .charts h3 { font-size: 1rem; margin: 0 0 4px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 0.8rem; color: var(--ink2); margin: 2px 0 4px; }
+  .legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+  .chart svg { width: 100%; height: auto; display: block; }
+  details { margin-top: 18px; border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px; }
+  details summary { cursor: pointer; font-weight: 650; }
+  details ul { margin: 10px 0 0; padding-left: 20px; font-size: 0.9rem; color: var(--ink2); }
+
+  /* ---- test your ears ---- */
+  .scorebar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px;
+    padding: 12px 16px; border-radius: 12px; background: var(--soft); font-weight: 650; }
+  .qcard { border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 12px;
+    background: #fff; }
+  .qhead { display: flex; align-items: center; gap: 14px; }
+  .qplay { width: 50px; height: 50px; border-radius: 50%; border: 0; background: var(--ink); color: #fff; font-size: 1.5rem;
+    display: grid; place-items: center; cursor: pointer; flex: none; }
+  .qplay:hover { background: var(--brand); }
+  .qtitle { font-weight: 750; font-size: 1.05rem; }
+  .qbar { height: 6px; border-radius: 99px; background: rgba(127,127,127,0.16); overflow: hidden; margin: 6px 0 3px; }
+  .qbar div { height: 100%; width: 0; background: var(--brand); }
+  .qanswers { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .qanswers button { border: 1px solid var(--line); background: #fff; border-radius: 10px; padding: 9px; font-weight: 650;
+    cursor: pointer; }
+  .qanswers button:hover:not(:disabled) { border-color: var(--ink2); }
+  .qanswers button.pick-right { background: var(--good); border-color: var(--good); color: #fff; }
+  .qanswers button.pick-wrong { background: var(--critical); border-color: var(--critical); color: #fff; }
+  .qanswers button:disabled { cursor: default; }
+  .qverdict { font-weight: 750; }
+  .qsig { margin: 8px 0 0; }
+  .qsig .top { display: flex; justify-content: space-between; gap: 8px; font-size: 0.84rem; font-weight: 650; }
+
+  /* ---- live demo (the co-pilot replay) ---- */
+  .layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); min-height: calc(100vh - 58px); }
+  aside { background: var(--side); padding: 18px 16px 24px; border-right: 1px solid var(--line); }
+  aside h4 { margin: 0 0 8px; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink2); }
+  .calls { display: flex; flex-direction: column; gap: 4px; margin-bottom: 16px; }
+  .call-btn { display: flex; align-items: center; gap: 10px; text-align: left; border: 1px solid transparent;
+    background: transparent; border-radius: 10px; padding: 7px 8px; cursor: pointer; color: var(--ink); line-height: 1.3; }
+  .call-btn:hover { background: rgba(127,127,127,0.10); }
+  .call-btn.active { background: #fff; border-color: var(--line); box-shadow: 0 1px 3px rgba(0,0,0,0.06); font-weight: 650; }
+  .num { flex: 0 0 26px; height: 26px; border-radius: 50%; background: var(--ink); color: #fff; font-size: 0.8rem;
+    font-weight: 700; display: grid; place-items: center; }
+  .call-btn.active .num { background: var(--brand); }
+  .controls { display: grid; grid-template-columns: 1fr 1fr 44px; gap: 6px; }
+  .btn { border: 1px solid var(--line); background: #fff; color: var(--ink); border-radius: 8px; padding: 8px 10px;
+    cursor: pointer; font-weight: 600; }
+  .btn:hover:not(:disabled) { border-color: var(--ink2); }
+  .btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .btn:disabled { opacity: 0.45; cursor: default; }
+  .linkbtn { margin-top: 8px; width: 100%; }
+  .progress { font-size: 0.82rem; color: var(--ink2); margin: 10px 0 2px; }
+  .toggle { display: flex; align-items: center; gap: 8px; font-size: 0.88rem; margin: 10px 0 2px; cursor: pointer; }
+  .status { margin-top: 4px; }
+  .truth { margin-top: 6px; padding: 8px 10px; border-radius: 8px; background: rgba(42,120,214,0.10); font-size: 0.85rem; }
+  .keys { margin-top: 16px; }
+  kbd { font: 0.75rem ui-monospace, Menlo, monospace; border: 1px solid var(--line); border-bottom-width: 2px;
+    border-radius: 4px; padding: 0 4px; background: #fff; }
+  .demo-main { padding: 18px 26px 30px; min-width: 0; }
+  .replay-note { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: 0.82rem; color: var(--ink2);
+    background: var(--soft); border-radius: 10px; padding: 8px 12px; margin-bottom: 14px; }
+  .pill { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #fff;
+    background: var(--ink); border-radius: 999px; padding: 2px 9px; }
+  .title { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.02em; margin: 0; line-height: 1.2; }
+  .title span { color: var(--brand); }
+  .sub { color: var(--ink2); margin: 3px 0 2px; font-size: 0.92rem; }
+  .summary { color: var(--muted); font-size: 0.88rem; margin: 2px 0 16px; }
+  .cols { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 28px; }
+  h5 { font-size: 1rem; margin: 0 0 8px; }
+  .transcript { height: 430px; overflow-y: auto; border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px;
+    margin-bottom: 18px; }
+  .bubble { padding: 9px 13px; border-radius: 12px; margin: 6px 0; max-width: 90%; line-height: 1.42; font-size: 0.94rem; }
+  .agent { background: rgba(127,127,127,0.10); margin-right: auto; }
+  .caller { background: rgba(205,4,11,0.06); border: 1px solid rgba(205,4,11,0.18); margin-left: auto; }
+  .latest { box-shadow: 0 0 0 2px rgba(205,4,11,0.35); }
+  .who { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 2px; }
+  .tagx { display: inline-block; font-size: 0.68rem; padding: 0 7px; border-radius: 999px; margin-left: 6px;
+    border: 1px solid currentColor; text-transform: none; letter-spacing: 0; }
+  .ringing { color: var(--muted); font-size: 0.9rem; padding: 8px 2px; }
+  .chart svg { width: 100%; height: auto; display: block; }
+  .card { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; background: #fff; color: var(--ink); }
+  .risk-n { font-size: 3.4rem; font-weight: 800; line-height: 1; letter-spacing: -0.03em; transition: color .3s; }
+  .verdict { font-size: 1.2rem; font-weight: 750; margin: 6px 0 4px; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: 700; }
+  .meter { position: relative; height: 10px; border-radius: 99px; background: rgba(127,127,127,0.16); margin: 12px 0 4px; }
+  .meter .fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px; transition: width .4s, background .3s; }
+  .meter .tick { position: absolute; top: -3px; bottom: -3px; width: 2px; background: rgba(127,127,127,0.55); }
+  .scale { display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--muted); }
+  .action { border-left: 4px solid; padding: 9px 12px; border-radius: 6px; background: rgba(127,127,127,0.07);
+    font-size: 0.92rem; margin: 10px 0; }
+  .challenge { border: 1.5px dashed var(--warning); border-radius: 10px; padding: 10px 14px; margin: 10px 0; font-size: 0.92rem; }
+  .why { font-size: 0.8rem; color: var(--ink2); line-height: 1.35; }
+  .reason { font-size: 0.9rem; margin: 3px 0; }
+  .sig { margin: 10px 0; }
+  .sig-top { display: flex; justify-content: space-between; gap: 10px; font-size: 0.88rem; font-weight: 650; }
+  .track { height: 7px; background: rgba(127,127,127,0.16); border-radius: 99px; overflow: hidden; margin: 4px 0 3px; }
+  .track div { height: 100%; border-radius: 99px; transition: width .4s; }
+  .caption { font-size: 0.8rem; color: var(--muted); margin-top: 8px; }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 22px 0 16px; }
+  h4.section-h { font-size: 1.1rem; margin: 0 0 10px; }
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 14px; flex-wrap: wrap; }
+  .tab { border: 0; background: none; padding: 8px 12px; cursor: pointer; color: var(--ink2); border-bottom: 2px solid transparent;
+    margin-bottom: -1px; font-weight: 600; }
+  .tab.active { color: var(--brand); border-bottom-color: var(--brand); }
+  .doc { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 28px; }
+  .md h3 { font-size: 1.15rem; margin: 0 0 4px; }
+  .md h4 { font-size: 1rem; margin: 14px 0 6px; }
+  .md p { margin: 6px 0; font-size: 0.92rem; }
+  .md p.gen { font-style: italic; color: var(--muted); font-size: 0.82rem; }
+  .md ul { margin: 4px 0 8px; padding-left: 20px; font-size: 0.9rem; }
+  .md blockquote { margin: 6px 0; padding: 4px 12px; border-left: 3px solid var(--line); color: var(--ink2); font-size: 0.9rem; }
+  .metric { margin-bottom: 16px; }
+  .metric .label { font-size: 0.85rem; color: var(--ink2); }
+  .metric .value { font-size: 1.9rem; font-weight: 750; letter-spacing: -0.02em; }
+  .bar { display: inline-block; vertical-align: middle; width: 90px; height: 7px; border-radius: 99px;
+    background: rgba(127,127,127,0.16); overflow: hidden; margin-right: 8px; }
+  .bar div { height: 100%; }
+
+  /* ---- smaller screens ---- */
+  @media (max-width: 1000px) {
+    .g4, .g5 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .hero-grid, .calc, .charts, .foot { grid-template-columns: 1fr; }
+    .hero-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .flow { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 22px; }
+    .flow .step::before { display: none; }
+    .layout { grid-template-columns: 1fr; }
+    aside { border-right: 0; border-bottom: 1px solid var(--line); }
+    .cols, .doc { grid-template-columns: 1fr; }
+    .demo-main { padding: 16px; }
+    .transcript { height: 340px; }
+  }
+  @media (max-width: 760px) {
+    .site { padding: 8px 12px 0; }
+    .site nav { margin-left: 0; width: 100%; flex-wrap: wrap; }
+    .site nav button { padding: 8px 9px 9px; }
+    .site nav .sep { display: none; }
+    .g2, .g3, .g4, .g5, .flow { grid-template-columns: 1fr; }
+    .wrap { padding: 0 16px; }
+    .hero { padding: 36px 0 32px; }
+  }
+</style>
+</head>
+<body>
+<header class="site">
+  <button class="brand" data-go="about" aria-label="Deepfake Voice Shield: About"><span class="ico" id="logo"></span>Deepfake Voice <span>Shield</span></button>
+  <nav aria-label="Main">
+    <button data-go="demo" class="nav-cta"><span class="ico" id="nav-play"></span>Live Demo</button>
+    <button data-go="ears">Test your ears</button>
+    <button data-go="evidence">Evidence</button>
+    <span class="sep" aria-hidden="true"></span>
+    <button data-go="about">About</button>
+    <button data-go="vision">Vision</button>
+    <button data-go="value">Value</button>
+  </nav>
+</header>
+
+<div class="page" id="page-about" hidden></div>
+<div class="page" id="page-vision" hidden></div>
+<div class="page" id="page-value" hidden></div>
+<div class="page" id="page-evidence" hidden></div>
+<div class="page" id="page-ears" hidden></div>
+<div class="page" id="page-demo" hidden>
+  <div class="layout">
+    <aside>
+      <h4>Incoming call</h4>
+      <div class="calls" id="calls"></div>
+      <div class="controls">
+        <button class="btn primary" id="next" title="Play the next turn (right arrow)">Next turn</button>
+        <button class="btn" id="play" title="Play the rest of the call (space)">Play call</button>
+        <button class="btn" id="reset" title="Restart this call" aria-label="Restart this call">&#8634;</button>
+      </div>
+      <button class="btn linkbtn" id="end">Jump to the result</button>
+      <div class="progress" id="progress"></div>
+      <label class="toggle"><input type="checkbox" id="hear" checked> Hear each turn</label>
+      <div class="small status" id="audio-status"></div>
+      <label class="toggle"><input type="checkbox" id="truth"> Reveal ground truth</label>
+      <div id="truth-box"></div>
+      <div class="small" id="voices" style="margin-top:12px"></div>
+      <div class="small keys"><kbd>Space</kbd> play or pause &nbsp; <kbd>&rarr;</kbd> next turn</div>
+    </aside>
+    <main class="demo-main">
+      <div class="replay-note"><span class="pill">Live demo</span><span><b>Pick a call on the left and press Play call</b>
+        (or Next turn). You hear the call and watch Shield update the risk, the reasons and the next step at every turn:
+        a replay of the engine's real decisions, with real voices.</span></div>
+      <p class="title">Deepfake Voice <span>Shield</span> &middot; agent co-pilot</p>
+      <p class="sub" id="meta"></p>
+      <p class="summary" id="summary"></p>
+      <div class="cols">
+        <section>
+          <h5>Live transcript</h5>
+          <div class="transcript" id="transcript"></div>
+          <h5>Risk over the call</h5>
+          <div class="chart" id="chart"></div>
+        </section>
+        <section id="decision"></section>
+      </div>
+      <hr>
+      <h4 class="section-h">Generated for the next agent</h4>
+      <div class="tabs" id="tabs">
+        <button class="tab" data-tab="card">Transfer handoff card</button>
+        <button class="tab" data-tab="referral">Fraud referral</button>
+        <button class="tab" data-tab="evidence">Model evidence</button>
+      </div>
+      <div id="tab-body"></div>
+    </main>
+  </div>
+</div>
+
+<footer class="site-foot">
+  <div class="wrap foot">
+    <div><b>Deepfake Voice Shield</b><div class="small">A working prototype for real-time caller verification in Customer
+      Care. Shield advises, the agent decides.</div><div class="small" id="foot-team" style="margin-top:6px"></div></div>
+    <div class="small">Open and synthetic data only: LibriSpeech readers (CC BY 4.0), a Chatterbox clone (MIT) and Kokoro
+      voices (Apache-2.0); fictional accounts and 555 numbers; no customer data. This site replays the decisions the
+      Python prototype made on these calls; live scoring of new audio runs in the prototype.
+      <div id="foot-version" style="margin-top:6px"></div></div>
+  </div>
+</footer>
+
+<script>const DATA = /*__DATA__*/null;</script>
+<script>const TEAM = /*__TEAM__*/null; const INITIAL_PAGE = /*__PAGE__*/null; const BUILD = /*__BUILD__*/"";</script>
+<script>
+(function () {
+  "use strict";
+  var GOOD = "#0ca30c", WARNING = "#fab219", CRITICAL = "#d03b3b", INFO = "#2a78d6", MUTED = "#898781";
+  var SERIES = ["#2a78d6", "#eb6834", "#1baf7a"];
+  var ACTION = { PROCEED: [GOOD, "✅", "Proceed"], STEP_UP: [WARNING, "⚠️", "Step up"],
+    ESCALATE: [CRITICAL, "⛔", "Escalate to Fraud"], AUTHORIZED_AGENT: [INFO, "🤖", "Authorised AI agent"] };
+  var EVENT_TAGS = { consent_approved: [GOOD, "customer approved on phone"],
+    owner_approved: [GOOD, "account holder approved on phone"], owner_denied: [CRITICAL, "account holder tapped Not me"] };
+  var PAGES = ["about", "demo", "ears", "evidence", "vision", "value"];
+  var GS = !!(window.google && google.script && google.script.run);
+  var CUR = null;
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function icon(name) { var s = DATA.icons[name]; return s ? '<span class="ico" aria-hidden="true">' + s + "</span>" : ""; }
+  function level(s) { return s < 0.4 ? [GOOD, "low"] : s < 0.8 ? [WARNING, "medium"] : [CRITICAL, "high"]; }
+  function riskColor(sn) {
+    if (sn.action === "AUTHORIZED_AGENT") return INFO;
+    return sn.risk < 40 ? GOOD : sn.risk < 80 ? WARNING : CRITICAL;
+  }
+  function pct(x, d) { return (x * 100).toFixed(d || 0) + "%"; }
+  function num(x) { return Math.round(x).toLocaleString("en-US"); }
+  function usdM(x) { return "$" + (x / 1e6).toFixed(2) + "M"; }
+  function callIndex(id) { for (var i = 0; i < DATA.calls.length; i++) if (DATA.calls[i].id === id) return i; return 0; }
+  function badge(text, color) {
+    var ink = color === WARNING ? "#0b0b0b" : "#ffffff";
+    return '<span class="badge" style="background:' + color + ";color:" + ink + '">' + esc(text) + "</span>";
+  }
+  function riskCard(sn, kicker) {
+    var a = ACTION[sn.action], color = riskColor(sn);
+    return '<div class="card"><div class="kicker">' + esc(kicker) + '</div><div class="risk-n" style="color:' + color + '">' +
+      sn.riskText + '%</div><div class="verdict">' + esc(sn.verdict) + "</div>" + badge(a[1] + " " + a[2], a[0]) +
+      '<div class="meter"><div class="fill" style="width:' + sn.risk + "%;background:" + color + '"></div>' +
+      '<div class="tick" style="left:40%"></div><div class="tick" style="left:80%"></div></div>' +
+      '<div class="scale"><span>0 &middot; proceed</span><span style="margin-left:22%">40 &middot; step up</span>' +
+      "<span>80 &middot; escalate &middot; 100</span></div>" +
+      '<div class="action" style="border-color:' + a[0] + '">' + esc(sn.actionText) + "</div></div>";
+  }
+
+  // ---- audio files: from the Drive folder via Apps Script, or next to this page when opened locally ----
+  var urlCache = {}, pending = {};
+  function audioURL(name, ok, fail) {
+    if (urlCache[name]) return ok(urlCache[name]);
+    if (!GS) { urlCache[name] = name; return ok(name); }
+    if (pending[name]) { pending[name].push([ok, fail]); return; }
+    pending[name] = [[ok, fail]];
+    google.script.run.withSuccessHandler(function (b64) {
+      var bin = atob(b64), u8 = new Uint8Array(bin.length);
+      for (var j = 0; j < bin.length; j++) u8[j] = bin.charCodeAt(j);
+      urlCache[name] = URL.createObjectURL(new Blob([u8], { type: "audio/mpeg" }));
+      pending[name].forEach(function (cb) { cb[0](urlCache[name]); });
+      delete pending[name];
+    }).withFailureHandler(function () {
+      pending[name].forEach(function (cb) { if (cb[1]) cb[1](); });
+      delete pending[name];
+    }).getAudio(name);
+  }
+
+  // =========================================================================================================
+  // Navigation
+  // =========================================================================================================
+  function show(name, push) {
+    if (PAGES.indexOf(name) < 0) name = "about";
+    if (name === CUR) return;
+    if (CUR === "demo") { stopAll(); render(); }
+    if (CUR === "ears") quizStop();
+    CUR = name;
+    PAGES.forEach(function (p) { $("page-" + p).hidden = p !== name; });
+    Array.prototype.forEach.call(document.querySelectorAll(".site nav button"), function (b) {
+      b.classList.toggle("active", b.getAttribute("data-go") === name);
+    });
+    window.scrollTo(0, 0);
+    if (name === "ears") quizPrefetch();
+    if (push) {
+      if (GS) {
+        try { google.script.history.push({ page: name }, { page: name }); } catch (e) { /* history is optional */ }
+      } else if (location.hash.slice(1) !== name) {
+        location.hash = name;
+      }
+    }
+  }
+  function nudgePlay() {   // on arrival, draw the eye to the Play button once
+    var b = $("play");
+    b.classList.remove("attention"); void b.offsetWidth; b.classList.add("attention");
+  }
+  document.addEventListener("click", function (e) {
+    var go = e.target.closest("[data-go]");
+    if (go) { show(go.getAttribute("data-go"), true); if (go.getAttribute("data-go") === "demo") nudgePlay(); return; }
+    var cl = e.target.closest("[data-call]");
+    if (cl) { selectCall(callIndex(cl.getAttribute("data-call"))); show("demo", true); nudgePlay(); }
+  });
+
+  // =========================================================================================================
+  // About, Vision, Value: the product story (ui/content.py) and the money (vshield/impact.py)
+  // =========================================================================================================
+  function tile(ic, title, text, cls) {
+    return '<div class="tile ' + (cls || "") + '">' + (ic ? '<div class="ic">' + icon(ic) + "</div>" : "") +
+      "<h3>" + esc(title) + "</h3><p>" + esc(text) + "</p></div>";
+  }
+  function tiles(items, cols) {
+    return '<div class="grid ' + cols + '">' + items.map(function (it) {
+      return it.length === 3 ? tile(it[0], it[1], it[2]) : tile(null, it[0], it[1]);
+    }).join("") + "</div>";
+  }
+  function head(title, intro) { return "<h2>" + esc(title) + "</h2>" + (intro ? '<p class="intro">' + esc(intro) + "</p>" : ""); }
+  function flow(items, red) {
+    return '<div class="flow' + (red ? " red" : "") + '">' + items.map(function (s, i) {
+      return '<div class="step"><div class="n">' + (i + 1) + "</div><h3>" + esc(s[0]) + "</h3><p>" + esc(s[1]) + "</p></div>";
+    }).join("") + "</div>";
+  }
+  function hero(kicker, titleHtml, lead, extra) {
+    return '<section class="hero"><div class="wrap"><div class="kicker">' + esc(kicker) + "</div><h1>" + titleHtml +
+      '</h1><p class="lead">' + esc(lead) + "</p>" + (extra || "") + "</div></section>";
+  }
+  function band(buttons) {
+    var C = DATA.content;
+    return '<div class="band"><div class="tagline">' + esc(C.TAGLINE[0]) + " <span>" + esc(C.TAGLINE[1]) + "</span></div>" +
+      '<div class="cta" style="margin:0">' + buttons + "</div></div>";
+  }
+  function joinNames(a) { return a.length < 2 ? a.join("") : a.slice(0, -1).join(", ") + " and " + a[a.length - 1]; }
+  function teamReady() {
+    return Array.isArray(TEAM) && TEAM.length > 0 && TEAM.every(function (m) { return m[0] && m[0].indexOf("[") < 0; });
+  }
+
+  var QUICK = [["voice_clone", "Voice clone"], ["ai_negotiator", "AI bot"], ["human_impersonator", "Impersonator"],
+    ["genuine_customer", "Real customer"]];
+  function renderAbout() {
+    var C = DATA.content, M = DATA.money.text, bot = DATA.calls[callIndex("ai_negotiator")];
+    var h = [];
+    h.push('<section class="hero"><div class="wrap"><div class="hero-grid"><div><div class="kicker">' + esc(C.ABOUT_KICKER) +
+      "</div><h1>Who is <span>really</span> calling?</h1><p class=\"lead\">" + esc(C.ABOUT_INTRO) + '</p><div class="cta">' +
+      '<button class="demo-btn" data-go="demo"><span class="pulse">' + icon("play_arrow") + "</span><span><b>Live Demo</b>" +
+      "<small>" + DATA.calls.length + " real calls, replayed turn by turn</small></span></button>" +
+      '<button class="bigbtn ghost" data-go="ears">' + icon("headphones") + " Test your ears</button></div>" +
+      '<p class="demo-how">Pick a call and press <b>Play</b>: you hear the caller and watch Shield score the risk, explain ' +
+      "why and tell the agent what to do, turn by turn.</p>" +
+      '<div class="quick"><span class="lbl">Jump straight to:</span>' + QUICK.map(function (q) {
+        var c = DATA.calls[callIndex(q[0])], fin = c.snaps[c.snaps.length - 1];
+        return '<button class="qchip" data-call="' + q[0] + '"><i style="background:' + ACTION[fin.action][0] + '"></i>' +
+          esc(q[1]) + "</button>";
+      }).join("") + "</div></div><div>" +
+      '<div class="card-link" data-call="ai_negotiator" title="Watch this call"><span class="watch">' + icon("play_arrow") +
+      "Watch this call</span>" + riskCard(bot.snaps[bot.snaps.length - 1], "Fraud / bot likelihood") + "</div>" +
+      '<div class="small" style="color:#a8a6a0">The agent\'s view of an undisclosed AI negotiation bot, flagged after its ' +
+      "first sentence.</div></div></div>" +
+      '<div class="hero-stats">' + [C.PROOF[0], C.PROOF[1], C.PROOF[3], [M.dollars, "a year back in agent time"]].map(function (s) {
+        return "<div><b>" + esc(s[0]) + "</b><span>" + esc(s[1]) + "</span></div>";
+      }).join("") + "</div></div></section>");
+    h.push('<div class="wrap">');
+    h.push('<section class="section">' + head("The problem: agents can't hear the difference") + tiles(C.THREATS, "g3") +
+      '<div class="callout">' + icon("swap_calls") + "<div>" + esc(C.TRANSFER_PROBLEM) + "</div></div></section>");
+    h.push('<section class="section">' + head("How it works", "Historical record matching and acoustic signal analysis, " +
+      "fused in real time, with the agent in charge.") + flow(C.FLOW) + '<div class="grid signals">' +
+      C.SIGNALS.map(function (s, i) {
+        return '<div class="sig7"><div class="n">' + (i + 1) + "</div><div><h4>" + esc(s[0]) + "</h4><p>" + esc(s[1]) +
+          '</p><div class="how">' + esc(s[2]) + "</div></div></div>";
+      }).join("") + "</div></section>");
+    h.push('<section class="section">' + head("Two blind spots, one shield", "Each model alone has a blind spot, and each " +
+      "covers the other's.") + '<div class="grid g2">' + C.BLIND_SPOTS.map(function (b) {
+        return '<div class="tile blind"><span class="tag">Blind spot</span><h3>' + esc(b[0]) + "</h3><p>" + esc(b[1]) + "</p></div>";
+      }).join("") + "</div></section>");
+    h.push('<section class="section">' + head("Shield advises. People decide.", "Human oversight at every step: the agent, " +
+      "the customer and the fraud team stay in control.") + tiles(C.HUMAN_IN_THE_LOOP, "g5") +
+      '<div class="callout info">' + icon("smart_toy") + "<div>" + esc(C.AI_ASSISTANTS) + "</div></div></section>");
+    h.push('<section class="section">' + head("Measured, not claimed") + '<div class="grid g4">' + C.PROOF.map(function (s) {
+      return '<div class="num-tile"><b>' + esc(s[0]) + "</b><span>" + esc(s[1]) + "</span></div>";
+    }).join("") + '</div><p class="small" style="margin-top:12px">' + esc(C.PROOF_LIMITS) + ' <button class="linkish" ' +
+      'data-go="evidence">See the evidence &rarr;</button></p></section>');
+    h.push('<section class="section"><div class="grid g2">' + tile("hub", "Built with", C.BUILT_WITH) +
+      tile("lock", "Data and ethics", C.DATA_ETHICS) + "</div></section>");
+    if (teamReady()) {
+      h.push('<section class="section">' + head("Team") + '<div class="grid g4">' + TEAM.map(function (m) {
+        return '<div class="member"><div class="avatar">' + esc(m[0].charAt(0)) + "</div><div><b>" + esc(m[0]) + "</b>" +
+          (m[1] ? '<div class="small">' + esc(m[1]) + "</div>" : "") + "</div></div>";
+      }).join("") + "</div></section>");
+    }
+    h.push(band('<button class="bigbtn primary" data-go="demo">' + icon("play_arrow") + " Watch a call</button>" +
+      '<button class="bigbtn ghost" data-go="value">' + icon("trending_up") + " See the value</button>"));
+    h.push("</div>");
+    $("page-about").innerHTML = h.join("");
+  }
+
+  function renderVision() {
+    var C = DATA.content, h = [];
+    h.push(hero("Vision", esc(C.VISION_HEADLINE), C.VISION_INTRO));
+    h.push('<div class="wrap">');
+    h.push('<section class="section">' + head("Four ideas behind it") + tiles(C.PILLARS, "g2") + "</section>");
+    h.push('<section class="section">' + head("Roadmap: from one queue to every call", "A service on the call-audio " +
+      "stream, not a desktop tool, so the agent's workflow stays the same.") + flow(C.ROADMAP, true) + "</section>");
+    h.push('<section class="section"><div class="grid g2"><div class="tile"><h3>What the pilot needs</h3><ul class="checks">' +
+      C.PILOT_NEEDS.map(function (n) { return "<li>" + icon("check_circle") + "<span>" + esc(n) + "</span></li>"; }).join("") +
+      '</ul></div><div class="tile"><h3>Next in the product</h3><ul class="checks">' + C.NEXT_IN_PRODUCT.map(function (n) {
+        return "<li>" + icon("arrow_forward") + "<span><b>" + esc(n[0]) + ":</b> " + esc(n[1]) + "</span></li>";
+      }).join("") + "</ul></div></div></section>");
+    h.push(band('<button class="bigbtn primary" data-go="value">' + icon("trending_up") + " See the value</button>" +
+      '<button class="bigbtn ghost" data-go="demo">' + icon("play_arrow") + " Watch a call</button>"));
+    h.push("</div>");
+    $("page-vision").innerHTML = h.join("");
+  }
+
+  var FIELDS = [];   // calculator inputs: [id, label, kind, min, max, step, value, suffix, presets]
+  function renderValue() {
+    var C = DATA.content, MO = DATA.money, M = MO.text, B = MO.brief, F = MO.fraudWhatIf, h = [];
+    FIELDS = [
+      ["transfers", "Transferred calls per year", "number", 100000, 20000000, 50000, B.transfers_per_year],
+      ["seconds", "Re-verification time saved per transfer (s)", "range", 30, 120, 1, B.seconds_saved],
+      ["share", "Share of transferred callers Shield verifies", "range", 50, 100, 5, B.share_verified * 100, "%"],
+      ["cost", "Loaded agent cost per hour ($)", "number", 10, 100, 1, B.hourly_cost, "",
+        [[B.hourly_cost, "Brief: " + M.rate], [MO.fullyLoadedRate, "Fully loaded: " + M.fullRate]]],
+      ["attempts", "Bot and clone calls per month (mock)", "number", 0, 100000, 100, F.attempts_per_month],
+      ["loss", "Average loss per successful attempt ($, mock)", "number", 0, 5000, 10, F.loss_per_attempt],
+      ["today", "Share caught today (mock)", "range", 0, 100, 5, F.baseline_catch_rate * 100, "%"],
+      ["shield", "Share caught with Shield", "range", 0, 100, 5, F.catch_rate * 100, "%"]
+    ];
+    h.push(hero("Value", esc(M.build) + " to build. <span>" + esc(M.dollars) + " a year back.</span>", C.VALUE_INTRO));
+    h.push('<div class="wrap"><section class="section">');
+    h.push('<div class="grid g4">' +
+      kpi("Setup cost (one time, internal hours)", M.build, "A " + MO.size + " effort: " + MO.dev + " developer/IT h × $" +
+        MO.rateCard.developer + " + " + MO.biz + " business/SME h × $" + MO.rateCard.business + ", the sprint's rate card.") +
+      kpi("Running cost (GCP, per year)", M.run, "Cloud infrastructure on GCP for the open-source models; no " +
+        "per-call license fees. Internal hours are in the setup cost.") +
+      kpi("Back, a year", M.dollars, M.hours + " agent hours at the brief's " + M.rate + "/hour: the time of " + M.fte +
+        " full-time agents.") +
+      kpi("Payback", M.payback, "Build cost ÷ daily savings after running cost. Year one returns " + M.yearOne + " its cost.",
+        "", CRITICAL) + "</div>");
+    h.push('<div class="grid g2" style="margin-top:16px">' +
+      kpi("Upside: at a fully loaded " + M.fullRate + "/hour", M.full + " a year", "The same " + M.hours +
+        " hours with benefits, facilities and supervision included; payback " + M.paybackFull + ".", "dark") +
+      kpi("Upside: fraud avoided (illustrative)", M.fraud + " a year", "Mock inputs: " + num(F.attempts_per_month) +
+        " bot or clone calls a month × $" + F.loss_per_attempt + ", caught " + pct(F.baseline_catch_rate) + " → " +
+        pct(F.catch_rate) + ". Not in the payback.", "dark") + "</div></section>");
+    h.push('<section class="section">' + head("Where the value comes from") + tiles(C.VALUE_STREAMS, "g4") + "</section>");
+    h.push('<section class="section">' + head("Try your own assumptions", "Every figure above comes from these inputs. " +
+      "Change any of them; the defaults reproduce the brief.") + '<div class="calc"><div>' +
+      '<h3>Transfers</h3>' + FIELDS.slice(0, 4).map(field).join("") + "<h3>Fraud (illustrative)</h3>" +
+      FIELDS.slice(4).map(field).join("") + '<button class="chipbtn" id="calc-reset">Reset to the defaults</button></div>' +
+      '<div><div class="grid g2" id="calc-out"></div><ul class="adds" id="calc-adds"></ul></div></div></section>');
+    var rows = MO.packages.map(function (p) {
+      return "<tr><td>" + esc(p[0]) + '</td><td class="r">' + (p[1] || "–") + '</td><td class="r">' + (p[2] || "–") +
+        '</td><td class="r">$' + num(p[1] * MO.rateCard.developer + p[2] * MO.rateCard.business) + "</td></tr>";
+    }).join("");
+    h.push('<section class="section"><div class="grid g2"><div>' + head("What it takes to build") +
+      '<table><thead><tr><th>Work package (production version)</th><th class="r">Dev/IT h</th><th class="r">SME h</th>' +
+      '<th class="r">Cost</th></tr></thead><tbody>' + rows + '<tr class="total"><td>Total: ' + esc(MO.size) + ' effort</td><td class="r">' +
+      MO.dev + '</td><td class="r">' + (MO.biz || "–") + '</td><td class="r">$' + num(MO.build) + "</td></tr></tbody></table></div><div>" +
+      head("Even at a fraction of the volume") + '<table><thead><tr><th>Share of transfers Shield verifies</th>' +
+      '<th class="r">Back a year</th><th class="r">Payback</th></tr></thead><tbody>' + MO.sensitivity.map(function (s) {
+        return "<tr><td>" + pct(s[0]) + '</td><td class="r">' + usdM(s[1]) + '</td><td class="r">' + esc(s[2]) + "</td></tr>";
+      }).join("") + '</tbody></table><p class="small">' + esc(C.VALUE_NOTES) + "</p></div></div></section>");
+    h.push(band('<button class="bigbtn primary" data-go="demo">' + icon("play_arrow") + " Watch a call</button>" +
+      '<button class="bigbtn ghost" data-go="vision">' + icon("rocket_launch") + " See the vision</button>"));
+    h.push("</div>");
+    $("page-value").innerHTML = h.join("");
+    $("page-value").addEventListener("input", calc);
+    $("page-value").addEventListener("click", function (e) {
+      var p = e.target.closest("[data-preset]");
+      if (p) { $("f-cost").value = p.getAttribute("data-preset"); calc(); }
+      if (e.target.id === "calc-reset") { FIELDS.forEach(function (f) { $("f-" + f[0]).value = f[6]; }); calc(); }
+    });
+    calc();
+  }
+  function kpi(label, value, sub, cls, color) {
+    return '<div class="kpi ' + (cls || "") + '"><div class="label">' + esc(label) + '</div><div class="value"' +
+      (color ? ' style="color:' + color + '"' : "") + ">" + esc(value) + '</div><div class="sub">' + esc(sub) + "</div></div>";
+  }
+  function field(f) {
+    var presets = f[8] ? '<div class="presets">' + f[8].map(function (p) {
+      return '<button class="chipbtn" data-preset="' + p[0] + '">' + esc(p[1]) + "</button>";
+    }).join("") + "</div>" : "";
+    return '<div class="field"><label for="f-' + f[0] + '"><span>' + esc(f[1]) + "</span>" +
+      (f[2] === "range" ? '<output id="o-' + f[0] + '"></output>' : "") + '</label><input id="f-' + f[0] + '" type="' + f[2] +
+      '" min="' + f[3] + '" max="' + f[4] + '" step="' + f[5] + '" value="' + f[6] + '">' + presets + "</div>";
+  }
+  function calc() {
+    var v = {};
+    FIELDS.forEach(function (f) {
+      var x = parseFloat($("f-" + f[0]).value);
+      v[f[0]] = isNaN(x) ? 0 : x;
+      if (f[2] === "range") $("o-" + f[0]).textContent = v[f[0]] + (f[7] || " s");
+    });
+    var MO = DATA.money, hours = v.transfers * v.share / 100 * v.seconds / 3600, dollars = hours * v.cost;
+    var fraud = v.attempts * 12 * v.loss * Math.max(v.shield - v.today, 0) / 100;
+    var net = (dollars - MO.run) / 365, payback = net > 0 ? MO.build / net : Infinity;
+    var paybackText = !isFinite(payback) ? "never" : payback < 2 ? Math.round(payback * 24) + " hours" : Math.round(payback) + " days";
+    $("calc-out").innerHTML = kpi("Agent hours saved per year", num(hours), "Re-verification skipped on verified transfers.") +
+      kpi("Labour cost saved per year", usdM(dollars), "At $" + v.cost + "/hour.") +
+      kpi("Full-time agents freed", num(hours / 1800), "At 1,800 productive hours per agent-year.") +
+      kpi("Payback on the build", paybackText,
+        "$" + num(MO.build) + " setup cost (internal hours), $" + num(MO.run) + " a year running cost on GCP.", "", CRITICAL) +
+      kpi("Fraud losses avoided per year", usdM(fraud), "Illustrative: mock inputs, not in the payback.", "dark");
+    $("calc-adds").innerHTML = "<li>" + num(v.transfers) + " transfers × " + v.share + "% verified × " + v.seconds + " s = <b>" +
+      num(hours) + " agent hours</b> a year, × $" + v.cost + "/h = <b>$" + num(dollars) + "</b>.</li>" +
+      "<li>The brief quotes <b>~76,000 hours and ~$2.2M</b> a year at 60-90 s per transferred call; the defaults reproduce it.</li>" +
+      "<li>Fraud: " + num(v.attempts) + " attempts a month × 12 × $" + num(v.loss) + " × (" + v.shield + "% − " + v.today +
+      "%) caught = <b>$" + num(fraud) + "</b> a year (mock inputs, to be replaced with the fraud team's data).</li>" +
+      "<li>Baseline to confirm: the Looker <i>chip_cs Handoffs</i> dashboard (transfer counts and re-verification time).</li>";
+  }
+
+  // =========================================================================================================
+  // Evidence: the model evaluation (reports/eval.json)
+  // =========================================================================================================
+  var EV = { split: "test-clean", ch: "telephone" };
+  var SPLITS = { "test-clean": "Held-out test (test-clean)", "dev-clean": "Calibration (dev-clean)" };
+  var CHANNELS = { telephone: "Phone line (8 kHz G.711)", clean: "Clean 16 kHz audio" };
+  var ATTACKS = { chatterbox_clone: "Voice clones", kokoro: "Neural TTS", macos_say: "Older TTS" };
+  function renderEvidence() {
+    var E = DATA.evaluation, h = [];
+    h.push(hero("Evidence", "Measured, <span>not claimed</span>", "How well Spectra-AASIST and NVIDIA TitaNet separate real " +
+      "voices from clones and text-to-speech, on held-out voices with thresholds fixed in advance."));
+    h.push('<div class="wrap"><section class="section"><div class="toolbar"><div class="seg" id="seg-split">' +
+      Object.keys(SPLITS).filter(function (s) { return E.splits[s]; }).map(function (s) {
+        return '<button data-split="' + s + '">' + SPLITS[s] + "</button>";
+      }).join("") + '</div><div class="seg" id="seg-ch">' + Object.keys(CHANNELS).map(function (c) {
+        return '<button data-ch="' + c + '">' + CHANNELS[c] + "</button>";
+      }).join("") + '</div></div><div id="ev-body"></div></section></div>');
+    $("page-evidence").innerHTML = h.join("");
+    $("page-evidence").addEventListener("click", function (e) {
+      var b = e.target.closest("[data-split],[data-ch]");
+      if (!b) return;
+      if (b.hasAttribute("data-split")) EV.split = b.getAttribute("data-split"); else EV.ch = b.getAttribute("data-ch");
+      evidenceBody();
+    });
+    evidenceBody();
+  }
+  function evidenceBody() {
+    var E = DATA.evaluation, res = E.splits[EV.split], m = res.channels[EV.ch], n = res.counts, imp = m.impostors;
+    Array.prototype.forEach.call(document.querySelectorAll("[data-split]"), function (b) {
+      b.classList.toggle("on", b.getAttribute("data-split") === EV.split);
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-ch]"), function (b) {
+      b.classList.toggle("on", b.getAttribute("data-ch") === EV.ch);
+    });
+    var h = ['<div class="grid g5">' +
+      kpi("Fakes caught", pct(m.caught), "Fake voices flagged as synthetic at the model card's 0.5 threshold.") +
+      kpi("Real voices flagged", pct(m.falseAlarm, 1), "Of " + n.real_test_clips + " real test clips.") +
+      kpi("Voiceprint fooled", pct(m.accept.clone), "Clones at or above the 0.70 match line: what a voiceprint-only system lets in.") +
+      kpi("Shield catches", m.fooling ? m.flagged + " of " + m.fooling : "–", "Of the clones that fooled the voiceprint, " +
+        "flagged by the anti-spoofing model.", "", GOOD) +
+      kpi("Impersonators passed", imp ? num(imp.accepted) : "–", imp ? "Of " + num(imp.pairs) + " same-gender pairs; " +
+        "highest similarity " + imp.max.toFixed(2) + "." : "") + "</div>"];
+    h.push('<p class="small" style="margin-top:12px">' + n.speakers + " real speakers, " + n.real_test_clips +
+      " real test clips and " + n.fake_test_clips + " fake ones (" + n.chatterbox_clone_clips + " voice clones, " +
+      n.kokoro_clips + " neural TTS, " + n.macos_say_clips + " older TTS). Voiceprint equal error rate on real speakers: " +
+      pct(m.vpEer, 1) + ".</p>");
+    h.push('<div class="charts"><div><h3>Voiceprint: who is speaking? (NVIDIA TitaNet)</h3>' +
+      histChart([["Different speaker", MUTED, m.vp.other_speaker], ["Same speaker", SERIES[0], m.vp.same_speaker],
+        ["Voice clone", SERIES[1], m.vp.clone]], E.vbins, E.decision.voiceprint_match, "match ≥ 0.70",
+        "cosine similarity to the enrolled voice", [-0.2, 0, 0.2, 0.4, 0.6, 0.8, 1.0]) +
+      '<p class="small">Different people (gray) stay far below the match line, which is how Shield catches a human ' +
+      "impersonator. But voice clones land among the genuine matches: a voiceprint alone cannot stop them.</p></div>" +
+      "<div><h3>Synthetic voice: is it a real human? (Spectra-AASIST)</h3>" +
+      histChart([["Real human", SERIES[0], m.sv.real], ["Voice clone", SERIES[1], m.sv.clone],
+        ["Text-to-speech", SERIES[2], m.sv.tts]], E.sbins, E.decision.synthetic_voice, "spoof ≥ 0.5",
+        "synthetic-speech probability", [0, 0.2, 0.4, 0.6, 0.8, 1.0]) +
+      '<p class="small">The anti-spoofing model puts the clones and TTS voices on the other side of the threshold, ' +
+      "including the clones that fooled the voiceprint.</p></div></div>");
+    var rows = [];
+    ["test-clean", "dev-clean"].filter(function (s) { return E.splits[s]; }).forEach(function (s) {
+      ["telephone", "clean"].filter(function (c) { return E.splits[s].channels[c]; }).forEach(function (c) {
+        var mm = E.splits[s].channels[c], ip = mm.impostors;
+        rows.push('<tr><td class="nw">' + (s === "test-clean" ? "Held-out test" : "Calibration") + '</td><td class="nw">' +
+          (c === "telephone" ? "Phone line" : "Clean 16 kHz") + '</td><td class="r">' + pct(mm.svEer, 1) +
+          '</td><td class="r">' + pct(mm.falseAlarm, 1) + "</td>" + Object.keys(ATTACKS).map(function (a) {
+            return '<td class="r">' + pct(mm.detection[a]) + "</td>";
+          }).join("") + '<td class="r">' + pct(mm.vpEer, 1) + '</td><td class="r">' + pct(mm.accept.clone) +
+          '</td><td class="r">' + pct(mm.accept.other_speaker, 1) + '</td><td class="r">' +
+          (ip ? pct(ip.accepted / ip.pairs, 1) : "–") + "</td></tr>");
+      });
+    });
+    h.push('<h3 style="margin:30px 0 6px">All results</h3><div style="overflow-x:auto"><table class="results"><thead><tr>' +
+      '<th rowspan="2">Data</th><th rowspan="2">Channel</th><th class="grp" colspan="5">Anti-spoofing (Spectra-AASIST)</th>' +
+      '<th class="grp" colspan="4">Voiceprint (NVIDIA TitaNet)</th></tr><tr><th class="r">EER</th><th class="r">Real ' +
+      'flagged</th>' + Object.keys(ATTACKS).map(function (a) { return '<th class="r">' + ATTACKS[a] + " caught</th>"; }).join("") +
+      '<th class="r">EER</th><th class="r">Clones pass</th><th class="r">Others pass</th><th class="r">Impersonators pass' +
+      "</th></tr></thead><tbody>" + rows.join("") + '</tbody></table></div><p class="small">"Pass" = scored at or above the ' +
+      "0.70 voiceprint match line. Impersonators: same-gender strangers scored against someone else's enrolled voice.</p>");
+    h.push("<details><summary>Method and limits</summary><ul>" +
+      "<li><b>Real voices:</b> LibriSpeech (CC BY 4.0). Thresholds were set on dev-clean; test-clean is held out: new " +
+      "speakers, new clone targets and TTS voices used nowhere else.</li>" +
+      "<li><b>Fake voices:</b> Chatterbox zero-shot clones made from a separate recording of each target speaker, " +
+      "Kokoro-82M neural TTS, and macOS text-to-speech.</li>" +
+      "<li><b>Human impersonators:</b> every real test clip is also scored against the enrolled voice of every other " +
+      "speaker of the same gender, as if that person were calling in someone else's name.</li>" +
+      "<li><b>Decision points fixed in advance:</b> synthetic probability 0.5 (Spectra-AASIST model card) and voiceprint " +
+      "match 0.70 (dev-clean only).</li>" +
+      "<li><b>Phone line:</b> every clip also goes through 8 kHz G.711; mobile codecs (AMR, EVS, Opus) and packet loss " +
+      "are not covered yet.</li>" +
+      "<li><b>Limits:</b> small sets (" + n.real_test_clips + " real clips per split can't measure a 1% false-alarm rate " +
+      "precisely); read audiobook speech, not phone conversations; newer or adversarially tuned generators may evade the " +
+      "detector (Spectra-AASIST reports 14% EER on the harder ASVspoof5 benchmark). Generated " + E.generated + ".</li>" +
+      "</ul></details>");
+    $("ev-body").innerHTML = h.join("");
+  }
+  function histChart(series, edges, threshold, thLabel, xTitle, xticks) {
+    var W = 560, H = 300, L = 48, R = 12, T = 18, B = 44, pw = W - L - R, ph = H - T - B;
+    var x0 = edges[0], x1 = edges[edges.length - 1], top = 0;
+    series.forEach(function (s) { s[2].share.forEach(function (v) { top = Math.max(top, v); }); });
+    var stepY = top > 0.6 ? 0.2 : 0.1, ymax = Math.max(stepY, Math.ceil(top / stepY - 1e-9) * stepY);
+    function X(v) { return L + (v - x0) / (x1 - x0) * pw; }
+    function Y(v) { return T + ph * (1 - v / ymax); }
+    var o = ['<div class="legend">' + series.map(function (s) {
+      return '<span><i style="background:' + s[1] + '"></i>' + esc(s[0]) + " (" + s[2].n.toLocaleString("en-US") + ")</span>";
+    }).join("") + '</div><div class="chart"><svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="' + esc(xTitle) + '">'];
+    for (var v = 0; v <= ymax + 1e-9; v += stepY) {
+      o.push('<line x1="' + L + '" x2="' + (L + pw) + '" y1="' + Y(v) + '" y2="' + Y(v) + '" stroke="rgba(127,127,127,0.18)"/>' +
+        '<text x="' + (L - 6) + '" y="' + (Y(v) + 4) + '" font-size="11" text-anchor="end" fill="' + MUTED + '">' +
+        Math.round(v * 100) + "%</text>");
+    }
+    xticks.forEach(function (t) {
+      o.push('<text x="' + X(t) + '" y="' + (T + ph + 16) + '" font-size="11" text-anchor="middle" fill="' + MUTED + '">' +
+        t.toFixed(1) + "</text>");
+    });
+    o.push('<text x="' + (L + pw / 2) + '" y="' + (H - 6) + '" font-size="12" text-anchor="middle" fill="' + MUTED + '">' +
+      esc(xTitle) + "</text>");
+    o.push('<line x1="' + X(threshold) + '" x2="' + X(threshold) + '" y1="' + T + '" y2="' + (T + ph) +
+      '" stroke="' + MUTED + '" stroke-width="1.5" stroke-dasharray="4 3"/><text x="' + (X(threshold) + 5) + '" y="' +
+      (T + 11) + '" font-size="11" fill="' + MUTED + '">' + esc(thLabel) + "</text>");
+    series.forEach(function (s) {
+      var d = "M" + X(edges[0]) + "," + Y(0);
+      s[2].share.forEach(function (v, i) { d += "L" + X(edges[i]) + "," + Y(v) + "L" + X(edges[i + 1]) + "," + Y(v); });
+      d += "L" + X(edges[edges.length - 1]) + "," + Y(0);
+      o.push('<path d="' + d + '" fill="none" stroke="' + s[1] + '" stroke-width="2" stroke-linejoin="round"/>');
+    });
+    o.push("</svg></div>");
+    return o.join("");
+  }
+
+  // =========================================================================================================
+  // Test your ears: listen, guess human or AI, then see what the two models heard on the same audio
+  // =========================================================================================================
+  var QA = {}, qAudio = new Audio(), qCur = -1;
+  qAudio.preload = "auto";
+  function renderEars() {
+    var Q = DATA.quiz, h = [];
+    h.push(hero("Test your ears", "Agents can't hear the difference. <span>Can you?</span>", Q.length + " callers from our " +
+      "demo calls. Listen to each one and decide: a real human, or an AI-generated voice? After each answer you see what " +
+      "Shield's two models heard on exactly the audio you just played."));
+    h.push('<div class="wrap"><section class="section"><div class="scorebar"><span id="q-score"></span>' +
+      '<button class="chipbtn" id="q-reset">Start again</button></div><div class="grid g3">' + Q.map(function (q, i) {
+        return '<div class="qcard"><div class="qhead"><button class="qplay" data-qplay="' + i + '" aria-label="Play caller ' +
+          q.letter + '">' + icon("play_arrow") + '</button><div style="flex:1;min-width:0"><div class="qtitle">Caller ' + q.letter +
+          '</div><div class="qbar"><div id="qbar-' + i + '"></div></div><div class="small">' + q.seconds.toFixed(1) +
+          ' s of caller audio</div></div></div><div class="small" style="font-weight:650;color:var(--ink)">Human or AI-generated?' +
+          '</div><div class="qanswers"><button data-qa="human" data-q="' + i + '">Human</button><button data-qa="ai" data-q="' +
+          i + '">AI-generated</button></div><div id="qr-' + i + '" hidden></div></div>';
+      }).join("") + '</div><p class="small" style="margin-top:16px">Live scoring of your own voice runs in the Python ' +
+      "prototype (\"Try your voice\"). Here the scores are the ones NVIDIA TitaNet-Large and Spectra-AASIST produced on " +
+      "these clips; the voiceprint is compared with the account holder each caller claims to be.</p></section></div>");
+    $("page-ears").innerHTML = h.join("");
+    $("page-ears").addEventListener("click", function (e) {
+      var p = e.target.closest("[data-qplay]");
+      if (p) { quizPlay(+p.getAttribute("data-qplay")); return; }
+      var a = e.target.closest("[data-qa]");
+      if (a && !a.disabled) { QA[+a.getAttribute("data-q")] = a.getAttribute("data-qa"); quizRender(); return; }
+      if (e.target.id === "q-reset") { QA = {}; quizStop(); quizRender(); }
+    });
+    qAudio.addEventListener("timeupdate", function () {
+      if (qCur >= 0 && qAudio.duration) $("qbar-" + qCur).style.width = (100 * qAudio.currentTime / qAudio.duration) + "%";
+    });
+    qAudio.addEventListener("ended", function () { quizIcons(-1); });
+    quizRender();
+  }
+  function quizPrefetch() { DATA.quiz.forEach(function (q) { audioURL(q.file, function () {}); }); }
+  function quizIcons(playing) {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-qplay]"), function (b) {
+      b.innerHTML = icon(+b.getAttribute("data-qplay") === playing ? "pause" : "play_arrow");
+    });
+  }
+  function quizStop() { qAudio.pause(); quizIcons(-1); }
+  function quizPlay(i) {
+    if (qCur === i && !qAudio.paused) { quizStop(); return; }
+    audio.pause();
+    audioURL(DATA.quiz[i].file, function (url) {
+      if (qCur !== i) {
+        if (qCur >= 0) $("qbar-" + qCur).style.width = "0";
+        qCur = i;
+        qAudio.src = url;
+      }
+      var p = qAudio.play();
+      if (p && p.catch) p.catch(function () { quizIcons(-1); });
+      quizIcons(i);
+    }, function () { $("q-score").textContent = "This clip's audio is missing from the Drive folder."; });
+  }
+  function quizRender() {
+    var Q = DATA.quiz, answered = 0, right = 0, shield = 0;
+    Q.forEach(function (q, i) {
+      if (q.shieldAI === q.ai) shield++;
+      var ans = QA[i], box = $("qr-" + i);
+      Array.prototype.forEach.call(document.querySelectorAll('[data-q="' + i + '"]'), function (b) {
+        var mine = ans && b.getAttribute("data-qa") === ans;
+        b.disabled = !!ans;
+        b.classList.toggle("pick-right", !!mine && (ans === "ai") === q.ai);
+        b.classList.toggle("pick-wrong", !!mine && (ans === "ai") !== q.ai);
+      });
+      if (!ans) { box.hidden = true; return; }
+      answered++;
+      var ok = (ans === "ai") === q.ai;
+      if (ok) right++;
+      var a = ACTION[q.action], simW = Math.max(0, Math.min(1, q.sim));
+      box.hidden = false;
+      box.innerHTML = '<div class="qverdict" style="color:' + (ok ? GOOD : CRITICAL) + '">' + (ok ? "Right: " : "Not quite: ") +
+        "it's " + esc(q.truth) + '.</div><div class="small">' + esc(q.source) + "</div>" +
+        '<div class="qsig"><div class="top"><span>Synthetic voice (Spectra-AASIST)</span><span>' + q.pText + " &middot; " +
+        (q.shieldAI ? "AI" : "human") + '</span></div><div class="track"><div style="width:' + (q.p * 100) + "%;background:" +
+        (q.shieldAI ? CRITICAL : GOOD) + '"></div></div></div><div class="qsig"><div class="top"><span>Voiceprint vs the ' +
+        "account holder (TitaNet)</span><span>" + q.simText + " &middot; " + (q.match ? "match" : "no match") + "</span></div>" +
+        '<div class="track"><div style="width:' + (simW * 100) + "%;background:" + (q.match ? INFO : MUTED) + '"></div></div></div>' +
+        '<p class="small" style="margin:10px 0 6px">' + esc(q.explain) + " Shield's decision on this call: " + badge(a[1] + " " +
+        q.decision, a[0]) + '</p><button class="linkish" data-call="' + q.id + '">Watch this call in the live demo &rarr;</button>';
+    });
+    $("q-score").textContent = answered < Q.length ? "Answered " + answered + " of " + Q.length + (answered ? " · " + right +
+      " right so far" : "") : "You: " + right + " of " + Q.length + " right · Shield's anti-spoofing model: " + shield + " of " +
+      Q.length + ". And for the human callers, Shield's voiceprint also tells the account holder from an impostor.";
+  }
+
+  // =========================================================================================================
+  // Live demo: the co-pilot replay
+  // =========================================================================================================
+  var S = { ci: 0, k: 0, playing: false, segEnd: null, clock: null, raf: 0, tab: "card" };
+  var audio = new Audio(), audioOK = false;
+  audio.preload = "auto";
+  function call() { return DATA.calls[S.ci]; }
+  function snap() { return call().snaps[S.k]; }
+  function setAudioStatus(state) {
+    $("audio-status").textContent = {
+      loading: "Loading the call audio…",
+      ready: "Call audio ready: real voices, played as each turn happens.",
+      missing: "Call audio not found. The replay still works, without sound."
+    }[state];
+  }
+  function loadAudio(i) {
+    var c = DATA.calls[i];
+    audioOK = false;
+    setAudioStatus("loading");
+    audioURL(c.id + ".mp3", function (url) { if (S.ci === i) { audio.src = url; audio.load(); } },
+      function () { if (S.ci === i) setAudioStatus("missing"); });
+  }
+  audio.addEventListener("canplay", function () { if (!audioOK) { audioOK = true; setAudioStatus("ready"); } });
+  audio.addEventListener("error", function () { if (audio.getAttribute("src")) { audioOK = false; setAudioStatus("missing"); } });
+
+  function startClock(t) {
+    if ($("hear").checked && audioOK) {
+      S.clock = { mode: "audio" };
+      qAudio.pause();
+      audio.currentTime = t;
+      var p = audio.play();
+      if (p && p.catch) p.catch(function () { S.clock = { mode: "sim", t0: performance.now() - t * 1000 }; });
+    } else {
+      S.clock = { mode: "sim", t0: performance.now() - t * 1000 };
+    }
+  }
+  function now() { return S.clock.mode === "audio" ? audio.currentTime : (performance.now() - S.clock.t0) / 1000; }
+  function stopAll() {
+    S.playing = false; S.segEnd = null; S.clock = null;
+    audio.pause();
+    cancelAnimationFrame(S.raf);
+  }
+  function tick() {
+    if (!S.clock) return;
+    var t = now(), turns = call().turns;
+    if (S.playing) {
+      var changed = false;
+      while (S.k < turns.length && t >= turns[S.k].start) { S.k++; changed = true; }
+      if (changed) render();
+      if (S.k >= turns.length && t >= turns[turns.length - 1].end + 0.5) { stopAll(); render(); return; }
+    } else if (S.segEnd !== null && t >= S.segEnd) { stopAll(); return; }
+    S.raf = requestAnimationFrame(tick);
+  }
+  function play() {
+    var turns = call().turns;
+    if (S.k >= turns.length) return;
+    stopAll();
+    S.playing = true;
+    startClock(S.k === 0 ? 0 : Math.max(0, turns[S.k].start - 0.3));
+    render();
+    S.raf = requestAnimationFrame(tick);
+  }
+  function next() {
+    var turns = call().turns;
+    if (S.k >= turns.length) return;
+    stopAll();
+    var tr = turns[S.k];
+    S.k++;
+    render();
+    if ($("hear").checked && audioOK) {
+      S.segEnd = tr.end + 0.15;
+      startClock(tr.start);
+      S.raf = requestAnimationFrame(tick);
+    }
+  }
+  function toEnd() { stopAll(); S.k = call().turns.length; render(); }
+  function reset() { stopAll(); S.k = 0; render(); }
+  function selectCall(i) { stopAll(); S.ci = i; S.k = 0; loadAudio(i); renderCalls(); render(); }
+
+  function renderCalls() {
+    $("calls").innerHTML = DATA.calls.map(function (c, i) {
+      return '<button class="call-btn' + (i === S.ci ? " active" : "") + '" data-i="' + i + '"><span class="num">' +
+        (i + 1) + "</span><span>" + esc(c.title) + "</span></button>";
+    }).join("");
+  }
+  function renderTranscript() {
+    var c = call(), turns = c.turns.slice(0, S.k);
+    if (!turns.length) {
+      $("transcript").innerHTML = '<div class="ringing">Call ringing. Caller ID and account context are already ' +
+        "scored before anyone speaks.</div>";
+      return;
+    }
+    $("transcript").innerHTML = turns.map(function (tr, i) {
+      var tags = "";
+      if (tr.challenge) tags += '<span class="tagx" style="color:' + WARNING + '">liveness challenge</span>';
+      if (tr.question) tags += '<span class="tagx" style="color:' + INFO + '">identity question</span>';
+      if (tr.interrupts) tags += '<span class="tagx">barge-in test</span>';
+      if (EVENT_TAGS[tr.event]) {
+        tags += '<span class="tagx" style="color:' + EVENT_TAGS[tr.event][0] + '">' + EVENT_TAGS[tr.event][1] + "</span>";
+      }
+      var who = tr.speaker === "agent" ? "Agent " + esc(c.agent) : "Caller";
+      var latest = i === turns.length - 1 ? " latest" : "";
+      return '<div class="bubble ' + tr.speaker + latest + '"><div class="who">' + who + " &middot; " +
+        tr.start.toFixed(1) + "s" + tags + "</div>" + esc(tr.text) + "</div>";
+    }).reverse().join("");
+    $("transcript").scrollTop = 0;
+  }
+  function renderChart() {
+    var c = call(), N = c.snaps.length, W = 640, H = 236, L = 44, R = 70, T = 12, B = 30;
+    var pw = W - L - R, ph = H - T - B;
+    function x(i) { return L + (N === 1 ? pw / 2 : i * pw / (N - 1)); }
+    function y(v) { return T + ph * (1 - v / 100); }
+    var o = ['<svg viewBox="0 0 ' + W + " " + H + '" role="img" aria-label="Risk over the call">'];
+    [[0, 40, GOOD, "proceed"], [40, 80, WARNING, "step up"], [80, 100, CRITICAL, "escalate"]].forEach(function (b) {
+      o.push('<rect x="' + L + '" y="' + y(b[1]) + '" width="' + pw + '" height="' + (y(b[0]) - y(b[1])) +
+        '" fill="' + b[2] + '" opacity="0.08"/>');
+      o.push('<text x="' + (L + pw + 8) + '" y="' + ((y(b[0]) + y(b[1])) / 2 + 4) + '" font-size="11" fill="' +
+        MUTED + '">' + b[3] + "</text>");
+    });
+    for (var v = 0; v <= 100; v += 20) {
+      o.push('<line x1="' + L + '" x2="' + (L + pw) + '" y1="' + y(v) + '" y2="' + y(v) +
+        '" stroke="rgba(127,127,127,0.18)"/><text x="' + (L - 6) + '" y="' + (y(v) + 4) +
+        '" font-size="11" text-anchor="end" fill="' + MUTED + '">' + v + "%</text>");
+    }
+    var step = N > 14 ? 2 : 1;
+    for (var i = 0; i < N; i += step) {
+      o.push('<text x="' + x(i) + '" y="' + (H - 10) + '" font-size="11" text-anchor="middle" fill="' + MUTED + '">' +
+        (i === 0 ? "ring" : "T" + i) + "</text>");
+    }
+    var pts = [];
+    for (var j = 0; j <= S.k; j++) pts.push(x(j) + "," + y(c.snaps[j].risk));
+    o.push('<polyline points="' + pts.join(" ") + '" fill="none" stroke="' + MUTED + '" stroke-width="2"/>');
+    for (var m = 0; m <= S.k; m++) {
+      var sn = c.snaps[m], tr = m > 0 ? c.turns[m - 1] : null;
+      var tip = sn.riskText + "% · " + ACTION[sn.action][2] + "\n" +
+        (tr ? tr.speaker + ": " + tr.text.slice(0, 60) : "Before answer: caller ID + account");
+      o.push('<circle cx="' + x(m) + '" cy="' + y(sn.risk) + '" r="' + (m === S.k ? 7 : 5.5) + '" fill="' +
+        ACTION[sn.action][0] + '" stroke="#fff" stroke-width="2"><title>' + esc(tip) + "</title></circle>");
+    }
+    o.push("</svg>");
+    $("chart").innerHTML = o.join("");
+  }
+  function renderDecision() {
+    var c = call(), sn = snap();
+    var kicker = sn.action === "AUTHORIZED_AGENT" ? "Bot likelihood - disclosed AI assistant, not fraud" : "Fraud / bot likelihood";
+    var h = [riskCard(sn, kicker)];
+    var last = S.k > 0 ? c.turns[S.k - 1] : null;
+    if (last && last.challenge) {
+      h.push('<div class="challenge"><b>Challenge asked</b> - waiting for the caller. Shield is timing how long the ' +
+        "answer takes.</div>");
+    }
+    if (last && last.question) {
+      h.push('<div class="challenge"><b>Identity question asked</b> - waiting for the caller. Shield will check the ' +
+        "answer against the account's records.</div>");
+    }
+    if (sn.suggested) {
+      h.push('<div class="challenge"><b>' + esc(sn.suggested.title) + "</b><br>" + esc(sn.suggested.script) +
+        '<div class="why" style="margin-top:4px">' + esc(sn.suggested.why) + "</div></div>");
+    }
+    sn.challenges.forEach(function (r) {
+      h.push('<div class="action" style="border-color:' + (r.passed ? GOOD : CRITICAL) + '">' +
+        (r.passed ? "✅" : "⛔") + ' <b>Challenge "' + esc(r.phrase) + '"</b>: ' + esc(r.verdict) + "</div>");
+    });
+    sn.identity.forEach(function (r) {
+      h.push('<div class="action" style="border-color:' + (r.passed ? GOOD : CRITICAL) + '">' +
+        (r.passed ? "✅" : "⛔") + " <b>" + esc(r.what) + "</b>: " + esc(r.verdict) + "</div>");
+    });
+    if (sn.reasons.length) {
+      h.push("<b>Why</b>" + sn.reasons.map(function (r) { return '<div class="reason">&bull; ' + esc(r) + "</div>"; }).join(""));
+    }
+    h.push('<div style="margin-top:12px"><b>Signals</b> <span class="why">(how strongly each one points to fraud)</span></div>');
+    sn.signals.forEach(function (s) {
+      var label = s[0], score = s[1], available = s[2], reason = s[3], pc = s[4];
+      if (!available) {
+        h.push('<div class="sig"><div class="sig-top"><span>' + esc(label) + '</span><span style="opacity:.6">waiting</span>' +
+          '</div><div class="track"><div style="width:0"></div></div><div class="why">' + esc(reason) + "</div></div>");
+      } else {
+        var lv = level(score);
+        h.push('<div class="sig"><div class="sig-top"><span>' + esc(label) + "</span><span>" + pc + " &middot; " + lv[1] +
+          '</span></div><div class="track"><div style="width:' + (score * 100) + "%;background:" + lv[0] + '"></div></div>' +
+          '<div class="why">' + esc(reason) + "</div></div>");
+      }
+    });
+    h.push('<div class="caption">Synthetic voice: ' + esc(DATA.models.synthetic_voice) + ". Voiceprint: " +
+      esc(DATA.models.voiceprint) + ". Model scores: produced by these models ahead of time, replayed here.</div>");
+    $("decision").innerHTML = h.join("");
+  }
+  function renderTab() {
+    var c = call(), sn = snap(), out;
+    Array.prototype.forEach.call(document.querySelectorAll(".tab"), function (b) {
+      b.classList.toggle("active", b.getAttribute("data-tab") === S.tab);
+    });
+    if (S.tab === "card") {
+      out = '<div class="doc"><div class="md">' + sn.card + '</div><div><div class="metric"><div class="label">' +
+        'Re-verification after transfer</div><div class="value">' + (sn.verified ? "Skipped" : "Required") +
+        '</div></div><div class="metric"><div class="label">Agent time saved on this transfer</div><div class="value">' +
+        (sn.verified ? "60-90 s" : "0 s") + '</div></div><div class="small">A verified caller\'s handoff card replaces ' +
+        "the knowledge questions on transfer.</div></div></div>";
+    } else if (S.tab === "referral") {
+      out = sn.referral ? '<div class="md">' + sn.referral + "</div>" :
+        '<div class="caption">No referral: this call is not assessed as fraud.</div>';
+    } else {
+      var rows = c.turns.slice(0, S.k).map(function (tr, i) { return [tr, i]; }).filter(function (p) {
+        return p[0].speaker === "caller" && p[0].scores;
+      });
+      if (!rows.length) {
+        out = '<div class="caption">No caller speech yet.</div>';
+      } else {
+        out = "<table><thead><tr><th>Turn</th><th>Caller speech so far (s)</th><th>Synthetic voice (Spectra-AASIST)</th>" +
+          "<th>Voiceprint similarity (TitaNet)</th></tr></thead><tbody>" + rows.map(function (p) {
+            var s = p[0].scores, sv = s.synthetic_voice, vs = s.voice_similarity;
+            return "<tr><td>T" + (p[1] + 1) + "</td><td>" + (p[0].span ? p[0].span[1].toFixed(1) : "") + "</td><td>" +
+              (sv == null ? "-" : '<span class="bar"><div style="width:' + (sv * 100) + "%;background:" + level(sv)[0] +
+                '"></div></span>' + Math.round(sv * 100) + "%") + "</td><td>" + (vs == null ? "-" : vs.toFixed(2)) +
+              "</td></tr>";
+          }).join("") + "</tbody></table>" +
+          '<div class="caption">Each model scores all caller audio heard so far. Synthetic above 50% = the model card\'s ' +
+          "spoof threshold. Voiceprint: match at 0.70 or above, mismatch at 0.55 or below (calibrated on LibriSpeech " +
+          "dev-clean, checked on test-clean).</div>";
+      }
+    }
+    $("tab-body").innerHTML = out;
+  }
+  function render() {
+    var c = call(), t = c.telecom, n = c.turns.length;
+    $("meta").textContent = c.accountName + " (" + c.accountId + ") · caller ID " + t.ani + " · STIR/SHAKEN " +
+      t.stir_shaken + " · " + t.line_type + " · reason: " + t.ivr_intent.replace(/_/g, " ") + " · agent " + c.agent;
+    $("summary").textContent = c.summary;
+    $("progress").textContent = S.k === 0 ? "Call ringing (turn 0 of " + n + ")" :
+      S.k >= n ? "Call finished (" + n + " turns)" : "Turn " + S.k + " of " + n;
+    $("voices").textContent = "Caller: " + c.voices.caller + ". Agent: " + c.voices.agent + ".";
+    $("truth-box").innerHTML = $("truth").checked ? '<div class="truth">Ground truth: <b>' + esc(c.truth) +
+      "</b> - expected action <b>" + esc(c.expected) + "</b></div>" : "";
+    $("next").disabled = S.k >= n || S.playing;
+    $("play").textContent = S.playing ? "Pause" : "Play call";
+    $("play").disabled = !S.playing && S.k >= n;
+    $("end").disabled = S.k >= n;
+    renderTranscript();
+    renderChart();
+    renderDecision();
+    renderTab();
+  }
+
+  $("calls").addEventListener("click", function (e) {
+    var b = e.target.closest(".call-btn");
+    if (b) selectCall(+b.getAttribute("data-i"));
+  });
+  $("next").addEventListener("click", next);
+  $("play").addEventListener("click", function () { if (S.playing) { stopAll(); render(); } else play(); });
+  $("reset").addEventListener("click", reset);
+  $("end").addEventListener("click", toEnd);
+  $("truth").addEventListener("change", render);
+  $("hear").addEventListener("change", function () { if (!$("hear").checked) { stopAll(); render(); } });
+  $("tabs").addEventListener("click", function (e) {
+    var b = e.target.closest(".tab");
+    if (b) { S.tab = b.getAttribute("data-tab"); renderTab(); }
+  });
+  document.addEventListener("keydown", function (e) {
+    if (CUR !== "demo" || /INPUT|TEXTAREA|SELECT/.test(e.target.tagName) || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === " " && e.target.tagName !== "BUTTON") { e.preventDefault(); $("play").click(); }
+    else if (e.key === "ArrowRight") { e.preventDefault(); if (!$("next").disabled) next(); }
+  });
+
+  // ---- start ----
+  $("logo").innerHTML = DATA.icons.shield;
+  $("nav-play").innerHTML = DATA.icons.play_arrow;
+  if (BUILD) $("foot-version").textContent = "Site version " + BUILD + ".";
+  if (teamReady()) $("foot-team").textContent = "Built by " + joinNames(TEAM.map(function (m) { return m[0]; })) + ".";
+  renderAbout();
+  renderVision();
+  renderValue();
+  renderEvidence();
+  renderEars();
+  selectCall(0);
+  if (GS) {
+    try {
+      google.script.history.setChangeHandler(function (e) {
+        var p = (e && e.state && e.state.page) || (e && e.location && e.location.parameter && e.location.parameter.page);
+        show(p || "about", false);
+      });
+    } catch (err) { /* history is optional */ }
+  } else {
+    window.addEventListener("hashchange", function () { show(location.hash.slice(1) || "about", false); });
+  }
+  show(INITIAL_PAGE || location.hash.slice(1) || "about", false);
+})();
+</script>
+</body>
+</html>

@@ -70,6 +70,13 @@ CSS = f"""
 """
 
 
+def top_nav(pages: list) -> None:
+    """Website-style links at the top right of every page (About, Vision, Value)."""
+    with st.container(horizontal=True, horizontal_alignment="right", gap="small"):
+        for page in pages:
+            st.page_link(page)
+
+
 def header(title_html: str, sub: str = "") -> None:
     st.markdown(CSS, unsafe_allow_html=True)
     st.markdown(f'<p class="vs-title">{title_html}</p>' + (f'<p class="vs-sub">{sub}</p>' if sub else ""),

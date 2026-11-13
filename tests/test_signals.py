@@ -86,6 +86,20 @@ def test_impact_model_reproduces_the_brief():
     hours, dollars = impact.transfer_savings(**impact.BRIEF)
     assert 75_000 < hours < 77_000 and 2.2e6 < dollars < 2.35e6
     assert impact.fraud_avoided(100, 50, 0.9, 0.4) == 100 * 12 * 50 * 0.5
+    assert 3.75e6 < hours * impact.FULLY_LOADED_HOURLY_COST < 3.85e6          # the pitch's "$3.8M fully loaded"
+    assert round(impact.fraud_avoided(**impact.FRAUD_WHAT_IF)) == 12_600_000  # the pitch's illustrative "$12.6M"
+
+
+def test_build_cost_and_payback_match_the_pitch():
+    assert impact.build_cost() == (460, 120, 55_000)                          # people's time: a Large effort, $55k
+    assert impact.RUN_COST_PER_YEAR == 2_000                                  # GCP infrastructure, a year
+    _, dollars = impact.transfer_savings(**impact.BRIEF)
+    assert impact.payback_label(impact.payback_days(dollars)) == "about 9 days"
+    full = dollars * impact.FULLY_LOADED_HOURLY_COST / impact.BRIEF["hourly_cost"]
+    assert impact.payback_label(impact.payback_days(full)) == "about 5 days"
+    assert impact.payback_label(impact.payback_days(dollars / 4)) == "about 35 days"
+    assert impact.payback_label(0.5) == "about 12 hours"
+    assert impact.payback_days(impact.RUN_COST_PER_YEAR) == float("inf")
 
 
 def test_telephone_channel_is_narrowband():

@@ -96,11 +96,12 @@ def about() -> None:
     m = _money()
     _band(C.ABOUT_KICKER, "Who is <span>really</span> calling?", C.ABOUT_INTRO,
           [(n, label) for n, label in C.PROOF[:2]] + [(f"${m['dollars'] / 1e6:.2f}M", "a year in agent time")])
-    c = st.columns([1, 1, 3])
-    with c[0]:
-        _link("copilot", "Watch Shield on a call", ":material/play_circle:")
-    with c[1]:
-        _link("how", "How it works in detail", ":material/account_tree:")
+    c = st.columns([1, 4], vertical_alignment="center")
+    if c[0].button("Live demo", icon=":material/play_circle:", type="primary", key="live-demo") and "copilot" in LINKS:
+        st.switch_page(LINKS["copilot"])
+    c[1].markdown("**Pick a call and press Play:** you hear the caller and watch Shield score the risk, explain why and "
+                  "tell the agent what to do, turn by turn.")
+    _link("how", "How it works in detail", ":material/account_tree:")
 
     st.markdown("#### The problem: agents can't hear the difference")
     _cards(C.THREATS, 3)

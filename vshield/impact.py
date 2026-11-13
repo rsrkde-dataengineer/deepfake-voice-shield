@@ -9,9 +9,9 @@ Upside: the same hours at a fully loaded $50/hour (wages plus benefits, faciliti
 Fraud losses avoided: bot/clone calls that would otherwise get credits or a SIM swap. Illustrative what-if with mock
 inputs (10,000 calls a month x $150, caught 25% -> 95% = $12.6M per year), to be replaced by the fraud team's data.
 
-Setup cost (people's time, one time): the production version is a Large effort (the sprint's T-shirt sizing) priced
+Setup cost (one time, internal hours): the production version is a Large effort (the sprint's T-shirt sizing) priced
 with its rate card, $100/hour developer/IT and $75/hour business/SME: 580 hours = $55,000.
-Running cost (infrastructure, every year): about $2,000 a year on GCP for the open-source models; no license fees.
+Running cost (GCP, per year): about $2,000 a year on GCP for the open-source models; no license fees.
 """
 from __future__ import annotations
 
@@ -32,11 +32,11 @@ BUILD_PACKAGES = [                                         # (work package, deve
     ("Calibration on consented call audio; fraud playbook", 20, 30),
     ("Pilot operations: agent training, Looker baseline, go-live", 0, 30),
 ]
-RUN_COST_PER_YEAR = 2_000.0    # GCP infrastructure to run the models, per year (the team's estimate); people are above
+RUN_COST_PER_YEAR = 2_000.0    # GCP infrastructure to run the models, per year (the team's estimate); internal hours are the setup cost
 
 
 def build_cost() -> tuple[int, int, float]:
-    """(developer hours, business hours, dollars): the people's time to build the production version."""
+    """(developer hours, business hours, dollars): the setup cost, in internal hours, of the production version."""
     dev = sum(p[1] for p in BUILD_PACKAGES)
     biz = sum(p[2] for p in BUILD_PACKAGES)
     return dev, biz, dev * RATE_CARD["developer"] + biz * RATE_CARD["business"]

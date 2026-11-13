@@ -127,7 +127,7 @@ VALUE_STREAMS = [   # (material icon, title, text)
      "rules call for, with a reason and an audit trail for every decision."),
 ]
 VALUE_NOTES = ("Base case: the brief's ~76,000 agent hours (~3.65M transferred calls × 75 s) at its $30/hour loaded "
-               "rate; confirm in the Looker chip_cs Handoffs dashboard. Build: people's time, sized with the sprint's "
-               "T-shirt guide (Large) and rate card ($100/h developer/IT, $75/h business/SME). Run: about $2,000 a year "
-               "of GCP infrastructure. Fraud: a what-if with mock inputs, not in the "
+               "rate; confirm in the Looker chip_cs Handoffs dashboard. Setup cost: internal hours, sized with the sprint's "
+               "T-shirt guide (Large) and priced with its rate card ($100/h developer/IT, $75/h business/SME). Running "
+               "cost: about $2,000 a year on GCP. Fraud: a what-if with mock inputs, not in the "
                "payback; the pilot replaces them with the fraud team's real counts.")

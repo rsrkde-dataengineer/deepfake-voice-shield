@@ -7,24 +7,25 @@ calls) is unchanged.
 
 ## What is in git, and what is not
 
-| In this repo (code) | Not in this repo (private) |
+| In this repo | Not in this repo |
 |---|---|
-| `web_app/Code.gs`: the Apps Script that serves the site | **`SVP_package.zip`**: the built site with its audio, the slides and the presenter guide |
-| `site_build/`: the site template and exporter | Teammates' real recordings and the AI clones made from them |
-| `slides_build/`: the two opening slides | Built call data (`data_own/`), working files (`work/`) |
-| The Python scripts that build the calls and the game | |
+| `SVP_package.zip.enc`: the built package (site with its audio, slides, presenter guide), **encrypted** (AES-256) | The passphrase: shared privately, never written to git |
+| `unpack.sh`: decrypts and unzips it | Teammates' raw recordings and the AI clones made from them |
+| `web_app/Code.gs`: the Apps Script that serves the site | Built call data (`data_own/`), working files (`work/`) |
+| `site_build/`, `slides_build/` and the Python scripts that build the calls and the game | |
 
 The package holds Pavithra's real voice and clones of it. Her consent covers this presentation, not a public repo, and
-a public copy would let anyone clone her voice. **Move `SVP_package.zip` privately:** email it to yourself, use AirDrop
-or a USB stick, or put it in your own Google Drive. `.gitignore` blocks the voice files the scripts write.
+a public copy would let anyone clone her voice. That is why it's in git only encrypted. `.gitignore` blocks the
+unencrypted voice files the scripts write.
 
 ## Put it live on the office Mac (a new Apps Script project, about 15 minutes)
 
 This is a separate project with its own Drive folder, "Deepfake Voice Shield SVP". The web app submitted to the sprint
 (its own project, folder "Deepfake Voice Shield web") is not touched.
 
-1. Copy `SVP_package.zip` to the office Mac and unzip it.
-2. **Google Drive** (work account): New → Folder upload → `site/Deepfake Voice Shield SVP`. Keep Settings → Convert
+1. In the cloned repo: `git pull`, then `zsh svp/unpack.sh` and type the passphrase. The package unpacks to
+   `~/Desktop/SVP_package` (site, slides, presenter guide).
+2. **Google Drive** (work account): New → Folder upload → `~/Desktop/SVP_package/site/Deepfake Voice Shield SVP`. Keep Settings → Convert
    uploads off.
 3. **script.google.com → New project.** Rename it "Deepfake Voice Shield SVP". Replace everything in `Code.gs` with
    `web_app/Code.gs` (the same file is in the package at `site/Code.gs`). Save.
@@ -61,3 +62,10 @@ zsh ~/Downloads/"Shield own voices"/run_all.sh     # calls -> model scores -> ga
 | `score_game.py` | Scores the game clips with both models and writes the game data |
 | `test_pavithra_voices.py` | Checks a person's real voice against their clones: voiceprint and deepfake detector, clean and phone line |
 | `jegan_*.py` | Checks Jegan's Spectra-AASIST + AASIST3 detector against our held-out sets |
+
+After a rebuild, encrypt the new package with the same passphrase (it asks twice), then commit it:
+
+```bash
+/usr/bin/openssl enc -aes-256-cbc -md sha256 -pbkdf2 -iter 200000 -salt \
+  -in ~/Downloads/"Shield own voices"/SVP_package.zip -out svp/SVP_package.zip.enc
+```

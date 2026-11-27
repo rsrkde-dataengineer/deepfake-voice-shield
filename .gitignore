@@ -16,3 +16,23 @@ reference/
 
 # Submission materials (internal, kept out of the public repo)
 #submission/
+
+# SVP presentation: teammates' real voices and AI clones never go in this public repo (the scripts write them next
+# to themselves; the finished package travels privately as SVP_package.zip)
+svp/work/
+svp/data_own/
+svp/site/
+svp/for_slides/
+svp/slides_build/node_modules/
+svp/*.pptx
+svp/*.zip
+svp/*.wav
+svp/*.m4a
+svp/*.mp3
+svp/*.ogg
+svp/game.json
+svp/svp_facts.json
+svp/jegan_check_scores.json
+svp/*_report.md
+svp/jegan_review.md
+svp/results_*.txt

@@ -18,20 +18,26 @@ The package holds Pavithra's real voice and clones of it. Her consent covers thi
 a public copy would let anyone clone her voice. **Move `SVP_package.zip` privately:** email it to yourself, use AirDrop
 or a USB stick, or put it in your own Google Drive. `.gitignore` blocks the voice files the scripts write.
 
-## Put it live on the office Mac (Apps Script, about 15 minutes)
+## Put it live on the office Mac (a new Apps Script project, about 15 minutes)
+
+This is a separate project with its own Drive folder, "Deepfake Voice Shield SVP". The web app submitted to the sprint
+(its own project, folder "Deepfake Voice Shield web") is not touched.
 
 1. Copy `SVP_package.zip` to the office Mac and unzip it.
-2. **Google Drive** (work account): New → Folder upload → `site/Deepfake Voice Shield web`. Turn off Settings → Convert
-   uploads. If an older copy is already there, that's fine: the script uses the newest one.
-3. **script.google.com:** open your project (or New project). Replace everything in `Code.gs` with `web_app/Code.gs`
-   (the same file is in the package at `site/Code.gs`). Save.
-4. Run **checkSetup**, and allow access the first time. The log shows today's site version and **19 audio files**.
-5. **Deploy:**
-   - Already deployed: Manage deployments → pencil → Version: New version → Deploy.
-   - First time: New deployment → Web app → Execute as: Me → Who has access: Anyone within your organization.
+2. **Google Drive** (work account): New → Folder upload → `site/Deepfake Voice Shield SVP`. Keep Settings → Convert
+   uploads off.
+3. **script.google.com → New project.** Rename it "Deepfake Voice Shield SVP". Replace everything in `Code.gs` with
+   `web_app/Code.gs` (the same file is in the package at `site/Code.gs`). Save.
+4. Choose **checkSetup** in the function list and click **Run**. Allow access the first time. The log shows today's site
+   version and **19 audio files**.
+5. **Deploy → New deployment →** gear icon → **Web app**. Execute as: **Me**. Who has access: **Anyone within your
+   organization**. Deploy.
 6. Copy the `/exec` link and add **`?page=same`**: it opens on the game. Other pages: `?page=demo`, `?page=value`.
 7. Open `SVP_opening_slides.pptx` in PowerPoint or Keynote. Select the red **Open Shield** button on slide 2, then
    Insert → Link, and paste the link.
+
+To update later, upload the folder again (the script uses the newest copy). Then Deploy → Manage deployments → pencil →
+Version: New version → Deploy. The link stays the same.
 
 **Backup without network or Apps Script:** double-click `index.html` in the unzipped site folder. It runs offline,
 audio included; add `#same` to the address to open the game.

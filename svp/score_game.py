@@ -20,7 +20,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from own_calls import NEW, ROLE_PLAY, SAMPLES, VOICE_NOTE, read_any, tidy  # noqa: E402
 
-WORK, SITE = HERE / "work", HERE / "site" / "Deepfake Voice Shield web"
+WORK, SITE = HERE / "work", HERE / "site" / "Deepfake Voice Shield SVP"
 MATCH_AT, MISMATCH_AT, SYNTH_AT = 0.70, 0.55, 0.5
 SUN = "The sun began to rise over the quiet valley, casting long gold shadows across the sleeping village below."
 

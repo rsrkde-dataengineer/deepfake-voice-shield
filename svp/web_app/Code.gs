@@ -7,8 +7,11 @@
  * Open a section directly with ?page=same (or demo, ears, evidence, about, vision, value).
  *
  * Updating: upload the new folder (or file) again. The script always uses the newest copy and skips the Trash.
+ *
+ * SVP edition: a separate Apps Script project that reads its own folder, "Deepfake Voice Shield SVP", so the web app
+ * submitted to the sprint (folder "Deepfake Voice Shield web") is never touched.
  */
-var FOLDER_NAME = 'Deepfake Voice Shield web';
+var FOLDER_NAME = 'Deepfake Voice Shield SVP';
 var PAGES = ['about', 'demo', 'same', 'ears', 'evidence', 'vision', 'value'];
 
 /** Serves the site. */
